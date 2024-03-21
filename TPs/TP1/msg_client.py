@@ -15,15 +15,22 @@ class Client:
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
-        self.msg_cnt +=1
+        self.msg_cnt += 1
         #
         # ALTERAR AQUI COMPORTAMENTO DO CLIENTE
         #
-        print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
+        print("\n" + msg.decode())
+        #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
         print('Input message to send (empty to finish)')
-        new_msg = input().encode()
-        #
-        return new_msg if len(new_msg)>0 else None
+        command = input().strip()
+
+
+        if command.startswith('send'):
+            print("Enter message body: ")
+            message_body = input()
+
+        print(command[0])
+        return command.encode()
 
 
 
@@ -40,10 +47,14 @@ async def tcp_echo_client():
     addr = writer.get_extra_info('peername')
     client = Client(addr)
     msg = client.process()
+
+    print(msg)
+
     while msg:
         writer.write(msg)
+        print(msg)
         msg = await reader.read(max_msg_size)
-        if msg :
+        if msg:
             msg = client.process(msg)
         else:
             break
