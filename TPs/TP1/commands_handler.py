@@ -72,9 +72,6 @@ def handle_getmsg_command(txt, message_queue):
 
     return response.encode()
 
-
-
-
 def handle_user_command(txt, message_queue):
 
     response = "User command received".encode()

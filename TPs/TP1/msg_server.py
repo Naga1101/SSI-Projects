@@ -1,7 +1,14 @@
 # Código baseado em https://docs.python.org/3.6/library/asyncio-stream.html#tcp-echo-client-using-streams
 import asyncio
+import os
 from commands_handler import *
 from queue import Queue
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 conn_cnt = 0
 conn_port = 8443
@@ -21,6 +28,8 @@ class ServerWorker(object):
         self.id = cnt
         self.addr = addr
         self.msg_cnt = 0
+        self.KEY = b""
+        self.algorythm_AES = None
 
     def valid_message(self, msg):
         key = msg.decode().split(" ")
@@ -71,6 +80,51 @@ class ServerWorker(object):
                 response = handle_getmsg_command(txt, message_queue)
 
         return response
+    
+    async def handshake(self, writer, reader):
+
+        p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF
+        g = 2
+
+        parameters = dh.DHParameterNumbers(p,g).parameters()
+        server_private_key = parameters.generate_private_key()
+
+        server_public_key_bytes = server_private_key.public_key().public_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.PublicFormat.SubjectPublicKeyInfo
+        )
+
+        # print(server_public_key_bytes)
+        writer.write(server_public_key_bytes)
+
+        client_public_key_bytes = await reader.read(max_msg_size)
+        # print(client_public_key_bytes)
+        client_public_key = serialization.load_pem_public_key(client_public_key_bytes)
+
+        shared_key = server_private_key.exchange(client_public_key)
+
+        derived_key = HKDF(
+            algorithm=hashes.SHA256(),
+            length=32,
+            salt=None,
+            info=b'handshake data',
+            ).derive(shared_key)
+        
+        print(f"Derived key: {derived_key}")
+
+        salt = os.urandom(16)
+
+        kdf = PBKDF2HMAC(
+            algorithm = hashes.SHA256(),
+            length = 64,
+            salt = salt,
+            iterations = 480000,
+        )
+
+        self.KEY = derived_key # assign new key
+        key = kdf.derive(self.KEY)
+        self.algorythm_AES = algorithms.AES((key))
+        # self.aesgcm= AESGCM(self.KEY) # start AESGCM
 
 
 def uid_gen(client_address):
@@ -94,6 +148,9 @@ async def handle_echo(reader, writer):
     conn_cnt += 1
     addr = writer.get_extra_info('peername')
     srvwrk = ServerWorker(conn_cnt, addr)
+
+    #setup shared key
+    await srvwrk.handshake(writer, reader)   # Ver ordem com o ui gen
 
     # gerar uid do utilizador
     uid = uid_gen(addr)
