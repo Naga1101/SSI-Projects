@@ -3,8 +3,6 @@ import sys
 
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-
-
 def main():
     fctxt = sys.argv[1] # nome ficheiro
     pos = sys.argv[2] # pos onde ptxtAtPos foi cifrado

@@ -25,6 +25,7 @@ class ServerWorker(object):
         """ Processa uma mensagem (`bytestring`) enviada pelo CLIENTE.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
+        print(msg)
         old_nonce = msg[:12]
         dt = self.aesgcm.decrypt(old_nonce, msg[12:], None)
         self.msg_cnt += 1

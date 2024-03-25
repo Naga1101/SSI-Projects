@@ -1,9 +1,11 @@
 # Código baseado em https://docs.python.org/3.6/library/asyncio-stream.html#tcp-echo-client-using-streams
 import asyncio
+import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 conn_cnt = 0
 conn_port = 8443
@@ -24,25 +26,26 @@ class ServerWorker(object):
         self.private_key = None
         self.public_key = None
 
-    def handshake(self):
-        self.pn = dh.DHParameterNumbers(p, g)
-        self.parameters = self.pn.parameters()
-        self.private_key = self.parameters.generate_private_key()
-        self.public_key = self.public_key()
-
     def process(self, msg):
+        aesgcm = AESGCM()   # chave vinda do deffie helman
         """ Processa uma mensagem (`bytestring`) enviada pelo CLIENTE.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
+        print(msg)
+        old_nonce = msg[:12]
+        dt = aesgcm.decrypt(old_nonce, msg[12:], None)
         self.msg_cnt += 1
         #
         # ALTERAR AQUI COMPORTAMENTO DO SERVIDOR
-        #
-        txt = msg.decode()
+        #        
+        txt = dt
         print('%d : %r' % (self.id,txt))
-        new_msg = txt.upper().encode()
-        #
-        return new_msg if len(new_msg)>0 else None
+        new_msg = txt.upper()
+        nonce = os.urandom(12)
+        ct = self.aesgcm.encrypt(nonce, new_msg, None)
+        final_msg = nonce + ct
+        
+        return final_msg if len(new_msg)>0 else None
 
 
 #

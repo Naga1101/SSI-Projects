@@ -1,10 +1,12 @@
 # Código baseado em https://docs.python.org/3.6/library/asyncio-stream.html#tcp-echo-client-using-streams
 import asyncio
 import socket
+import os
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
 conn_port = 8443
 max_msg_size = 9999
@@ -20,22 +22,28 @@ class Client:
         self.pn = dh.DHParameterNumbers(p, g)
         self.parameters = self.pn.parameters()
         self.private_key = self.parameters.generate_private_key()
+
     def process(self, msg=b""):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
-        if (msg):
-
-            print('Received (%d): %r' % (self.msg_cnt, dt))
+        if(msg):      
+            aesgcm = AESGCM() # chave vinda do deffie helman  cliente server
+            old_nonce = msg[:12]
+            dt = aesgcm.decrypt(old_nonce, msg[12:], None)
+            print('Received (%d): %r' % (self.msg_cnt , dt))
             print('Input message to send (empty to finish)')
-            self.msg_cnt += 1
+            self.msg_cnt +=1
         #
         # ALTERAR AQUI COMPORTAMENTO DO CLIENTE
         #
-
+        aesgcm = AESGCM()   # chave vinda do deffie helman server cliente
         new_msg = input().encode()
-        #
-        return new_msg if len(new_msg)>0 else None
+        nonce = os.urandom(12)
+        ct = self.aesgcm.encrypt(nonce, new_msg, None)
+        final_msg = nonce + ct
+        
+        return final_msg if len(new_msg)>0 else None
 
 
 
