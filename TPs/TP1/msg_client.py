@@ -57,6 +57,8 @@ class Client:
 
             return message.encode()
 
+        return command.encode()
+
 
 
 #
@@ -65,7 +67,6 @@ class Client:
 #
 # obs: não deverá ser necessário alterar o que se segue
 #
-
 
 async def tcp_echo_client():
     reader, writer = await asyncio.open_connection('127.0.0.1', conn_port)
@@ -78,6 +79,7 @@ async def tcp_echo_client():
         msg = await reader.read(max_msg_size)
         if msg:
             msg = client.process(msg)
+            print(msg)
         else:
             break
     writer.write(b'\n')
