@@ -24,7 +24,7 @@ class Client:
         self.sckt = sckt
         self.msg_cnt = 0
         self.msg_cnt = 0
-        self.KEY = b''
+        self.shared_key = None
         self.algorythm_AES = None
 
 
@@ -58,68 +58,77 @@ class Client:
                 # uid vai com o certificado?
                 message = f"{command} {message_body}"
 
-                return encode_message(message.encode(), self.KEY, self.algorythm_AES)
+                return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
         if command.startswith('askqueue'):
             message = 'askqueue'
-            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
+            return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
         if command.startswith('help'):
             message = 'help'
-            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
+            return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
         if command.startswith('getmsg'):
             msg_number = command.split()[1]
             message = f"getmsg {msg_number}"
 
-            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
+            return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
-        return encode_message(command.encode(), self.KEY, self.algorythm_AES)
-    
+        return encode_message(command.encode(), self.shared_key, self.algorythm_AES)
+
     async def handshake(self, writer, reader):
 
-        p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF
-        g = 2
+        # p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF
+        # g = 2
+        # parameters = dh.DHParameterNumbers(p,g).parameters()
 
-        parameters = dh.DHParameterNumbers(p,g).parameters()
-        client_private_key = parameters.generate_private_key()
+        # gerar os DH Paramenters e enviar ao server
+        parameters = dh.generate_parameters(generator=2, key_size=2048)
 
-        client_public_key_bytes = client_private_key.public_key().public_bytes(
+        # serializar os parametros e enviar ao server
+        param_bytes = parameters.parameter_bytes(
+            encoding=serialization.Encoding.PEM,
+            format=serialization.ParameterFormat.PKCS3
+        )
+        # enviar ao servidor
+        writer.write(param_bytes)
+
+        server_private_key = parameters.generate_private_key()
+
+        server_public_key_bytes = server_private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
-        # print(client_public_key_bytes)
-        writer.write(client_public_key_bytes)
+        writer.write(server_public_key_bytes)
 
-        server_public_key_bytes = await reader.read(max_msg_size)
-        server_public_key = serialization.load_pem_public_key(server_public_key_bytes)
+        client_public_key_bytes = await reader.read(max_msg_size)
+        client_public_key = serialization.load_pem_public_key(client_public_key_bytes)
 
-        shared_key = client_private_key.exchange(server_public_key)
+        shared_key = server_private_key.exchange(client_public_key)
 
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
             length=32,
             salt=None,
             info=b'handshake data',
-            ).derive(shared_key)
-        
+        ).derive(shared_key)
+
         print(f"Derived key: {derived_key}")
 
-        salt = os.urandom(16)
+        # salt = os.urandom(16)
 
         # kdf = PBKDF2HMAC(
-        #     algorithm = hashes.SHA256(),
-        #     length = 64,
-        #     salt = salt,
-        #     iterations = 480000,
+        #    algorithm=hashes.SHA256(),
+        #    length=64,
+        #    salt=salt,
+        #    iterations=480000,
         # )
 
-        self.KEY = derived_key # assign new key
-        # key = kdf.derive(self.KEY)
-        # self.algorythm_AES = algorithms.AES((key))
-        self.algorythm_AES = algorithms.AES((self.KEY))
-        # self.aesgcm= AESGCM(self.KEY) # start AESGCM
+        self.shared_key = derived_key
+        print(self.shared_key, ": SHARED KEY")
+        # key = kdf.derive(self.shared_key)
+        self.algorythm_AES = algorithms.AES(self.shared_key)
 
 #
 #
