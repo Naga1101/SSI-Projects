@@ -2,6 +2,7 @@
 import asyncio
 import os
 from commands_handler import *
+from encrypt_decypt_handler import *
 from queue import Queue
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives import serialization
@@ -52,6 +53,9 @@ class ServerWorker(object):
         #
         # ALTERAR AQUI COMPORTAMENTO DO SERVIDOR
         #
+
+        msg = decode_message(msg, self.KEY, self.algorythm_AES)
+
         txt = msg.decode()
         print('%d : %r' % (self.id, txt))
         #new_msg = txt.upper().encode()
@@ -79,7 +83,8 @@ class ServerWorker(object):
             elif txt.startswith("getmsg"):
                 response = handle_getmsg_command(txt, message_queue)
 
-        return response
+        print(response)
+        return encode_message(response, self.KEY, self.algorythm_AES)
     
     async def handshake(self, writer, reader):
 
@@ -114,16 +119,19 @@ class ServerWorker(object):
 
         salt = os.urandom(16)
 
-        kdf = PBKDF2HMAC(
-            algorithm = hashes.SHA256(),
-            length = 64,
-            salt = salt,
-            iterations = 480000,
-        )
+        # kdf = PBKDF2HMAC(
+        #     algorithm = hashes.SHA256(),
+        #     length = 64,
+        #     salt = salt,
+        #     iterations = 480000,
+        # )
 
         self.KEY = derived_key # assign new key
-        key = kdf.derive(self.KEY)
-        self.algorythm_AES = algorithms.AES((key))
+        # key = kdf.derive(self.KEY)
+        # self.algorythm_AES = algorithms.AES((key))
+        # print(self.algorythm_AES)
+        self.algorythm_AES = algorithms.AES((self.KEY))
+        print(self.algorythm_AES)
         # self.aesgcm= AESGCM(self.KEY) # start AESGCM
 
 
@@ -133,7 +141,6 @@ def uid_gen(client_address):
     uids[next_uid] = client_address
     message_queue[next_uid] = []
     return next_uid
-
 
 #
 #

@@ -2,6 +2,7 @@
 import asyncio
 import socket
 import os
+from encrypt_decypt_handler import *
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives import serialization
@@ -27,7 +28,7 @@ class Client:
         self.algorythm_AES = None
 
 
-    def process(self, msg=b""):
+    def process(self, msg):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
@@ -35,6 +36,9 @@ class Client:
         #
         # ALTERAR AQUI COMPORTAMENTO DO CLIENTE
         #
+
+        if msg != b"": msg = decode_message(msg, self.KEY, self.algorythm_AES)   
+
         #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
         print("\n" + msg.decode())
         print('Input message to send (empty to finish)')
@@ -54,23 +58,23 @@ class Client:
                 # uid vai com o certificado?
                 message = f"{command} {message_body}"
 
-                return message.encode()
+                return encode_message(message.encode(), self.KEY, self.algorythm_AES)
 
         if command.startswith('askqueue'):
             message = 'askqueue'
-            return message.encode()
+            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
 
         if command.startswith('help'):
             message = 'help'
-            return message.encode()
+            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
 
         if command.startswith('getmsg'):
             msg_number = command.split()[1]
             message = f"getmsg {msg_number}"
 
-            return message.encode()
+            return encode_message(message.encode(), self.KEY, self.algorythm_AES)
 
-        return command.encode()
+        return encode_message(command.encode(), self.KEY, self.algorythm_AES)
     
     async def handshake(self, writer, reader):
 
@@ -104,16 +108,17 @@ class Client:
 
         salt = os.urandom(16)
 
-        kdf = PBKDF2HMAC(
-            algorithm = hashes.SHA256(),
-            length = 64,
-            salt = salt,
-            iterations = 480000,
-        )
+        # kdf = PBKDF2HMAC(
+        #     algorithm = hashes.SHA256(),
+        #     length = 64,
+        #     salt = salt,
+        #     iterations = 480000,
+        # )
 
         self.KEY = derived_key # assign new key
-        key = kdf.derive(self.KEY)
-        self.algorythm_AES = algorithms.AES((key))
+        # key = kdf.derive(self.KEY)
+        # self.algorythm_AES = algorithms.AES((key))
+        self.algorythm_AES = algorithms.AES((self.KEY))
         # self.aesgcm= AESGCM(self.KEY) # start AESGCM
 
 #
@@ -130,7 +135,7 @@ async def tcp_echo_client():
 
     await client.handshake(writer, reader)
 
-    msg = client.process()
+    msg = client.process(b"")
 
     while msg:
         writer.write(msg)
