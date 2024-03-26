@@ -83,7 +83,7 @@ class ServerWorker(object):
             elif txt.startswith("getmsg"):
                 response = handle_getmsg_command(txt, message_queue)
 
-        print(response)
+        # print(response)
         return encode_message(response, self.shared_key, self.algorythm_AES)
 
     async def handshake(self, writer, reader):

@@ -78,7 +78,8 @@ def handle_user_command(txt, message_queue):
     return response
 
 def handle_help_command(txt, message_queue):
-    help_text = """• -user <FNAME>
+    help_text = """
+    • -user <FNAME>
     • send <UID> <SUBJECT> 
     • askqueue 
     • getmsg <NUM>

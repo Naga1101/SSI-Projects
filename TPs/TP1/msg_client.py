@@ -37,7 +37,7 @@ class Client:
         # ALTERAR AQUI COMPORTAMENTO DO CLIENTE
         #
 
-        if msg != b"": msg = decode_message(msg, self.KEY, self.algorythm_AES)   
+        if msg != b"": msg = decode_message(msg, self.shared_key, self.algorythm_AES)   
 
         #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
         print("\n" + msg.decode())
