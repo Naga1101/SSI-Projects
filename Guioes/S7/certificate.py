@@ -1,11 +1,29 @@
 from cryptography import x509
 import datetime
+from cryptography.hazmat.primitives import serialization
+
+def get_private_key_cert(fname):
+    with open(fname, "rb") as privKeyFile:
+        private_key = serialization.load_pem_private_key(
+            privKeyFile.read(),
+            password=b'1234'
+    )
+    return private_key
 
 
 def cert_load(fname):
     """lê certificado de ficheiro"""
     with open(fname, "rb") as fcert:
         cert = x509.load_pem_x509_certificate(fcert.read())
+    return cert
+
+def cert_get(fname):
+    # le certificado serializado
+    with open(fname, "rb") as fcert:
+        return fcert.read()
+    
+def cert_load_serialized(cert_ser):
+    cert = x509.load_pem_x509_certificate(cert_ser)
     return cert
 
 
@@ -67,4 +85,30 @@ def valida_certALICE(ca_cert):
         return True
     except:
         # print("Certificate is invalid!")
+        return False
+    
+
+def valida_certificado(cert, subj):
+    try:
+        # obs: pressupõe que a cadeia de certifica só contém 2 níveis
+        ca_cert = cert_load('MSG_CA.crt')
+        #cert.verify_directly_issued_by(ca_cert)
+        # verificar período de validade...
+        cert_validtime(cert)
+        # verificar identidade... (e.g.)
+        cert_validsubject(cert, [(x509.NameOID.COMMON_NAME, subj)])
+        # verificar aplicabilidade... (e.g.)
+        # cert_validexts(
+        #     cert,
+        #     [
+        #         (
+        #             x509.ExtensionOID.EXTENDED_KEY_USAGE,
+        #             lambda e: x509.oid.ExtendedKeyUsageOID.CLIENT_AUTH in e,
+        #         )
+        #     ],
+        # )
+        # print("Certificate is valid!")
+        return True
+    except Exception as e:
+        print(f'Certificate is invalid: {e}')
         return False
