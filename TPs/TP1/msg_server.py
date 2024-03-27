@@ -120,8 +120,6 @@ class ServerWorker(object):
             info=b'handshake data',
         ).derive(shared_key)
 
-        print(f"Derived key: {derived_key}")
-
         # salt = os.urandom(16)
 
         # kdf = PBKDF2HMAC(

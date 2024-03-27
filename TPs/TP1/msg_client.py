@@ -114,8 +114,6 @@ class Client:
             info=b'handshake data',
         ).derive(shared_key)
 
-        print(f"Derived key: {derived_key}")
-
         # salt = os.urandom(16)
 
         # kdf = PBKDF2HMAC(
@@ -151,7 +149,6 @@ async def tcp_echo_client():
         msg = await reader.read(max_msg_size)
         if msg:
             msg = client.process(msg)
-            print(msg)
         else:
             break
     writer.write(b'\n')
