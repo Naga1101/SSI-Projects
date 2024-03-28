@@ -9,7 +9,7 @@ from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import certificate
+from certificate import *
 
 conn_port = 8443
 max_msg_size = 9999
@@ -76,13 +76,13 @@ class Client:
 
             server_public_key_dh = load_pem_public_key(server_key_pem)
 
-            private_key = certificate.get_private_key_cert("MSG_CLI1.key")
-            server_certificate = certificate.cert_load_serialized(cert)
+            private_key = get_private_key_cert("MSG_CLI1.key")
+            server_certificate = cert_load_serialized(cert)
 
-            if certificate.valida_certificado(server_certificate, 'SSI Message Relay Server') is False:
+            if valida_certificado(server_certificate, 'SSI Message Relay Server') is False:
                 print("Certificate is invalid")
             
-            server_public_key = server_certificate.public_key()
+            server_public_key = server_public_key()
             #try:
             server_public_key.verify(
                 signature,
@@ -106,7 +106,7 @@ class Client:
                 hashes.SHA256()
             )
 
-            client_cert = certificate.cert_get("MSG_CLI1.crt")
+            client_cert = cert_get("MSG_CLI1.crt")
 
             data = mkpair(client_signature, client_cert)
             writer.write(data)

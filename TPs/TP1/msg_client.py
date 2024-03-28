@@ -44,6 +44,17 @@ class Client:
         print('Input message to send (empty to finish)')
 
         command = input().strip()
+        if command.startswith('-user'):
+            args = command.split()
+
+            if len(args) > 1:
+                fname = args[1]
+                message = f'-user {fname}'
+            else:
+                fname = ""
+                message = "-user"    
+
+            return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
         if command.startswith('send'):
             print("Enter message body: ")
@@ -56,19 +67,19 @@ class Client:
             else:
                 # falta caso subject ter mais de 1 palavra
                 # uid vai com o certificado?
-                message = f"{command} {message_body}"
+                message = f"{command} | {message_body}"
 
                 return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
-        if command.startswith('askqueue'):
+        elif command.startswith('askqueue'):
             message = 'askqueue'
             return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
-        if command.startswith('help'):
+        elif command.startswith('help'):
             message = 'help'
             return encode_message(message.encode(), self.shared_key, self.algorythm_AES)
 
-        if command.startswith('getmsg'):
+        elif command.startswith('getmsg'):
             msg_number = command.split()[1]
             message = f"getmsg {msg_number}"
 

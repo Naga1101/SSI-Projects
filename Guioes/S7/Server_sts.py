@@ -8,7 +8,7 @@ from cryptography.hazmat.primitives.serialization import load_pem_public_key
 from cryptography.hazmat.primitives.asymmetric import dh
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-import certificate
+from certificate import *
 
 conn_cnt = 0
 conn_port = 8443
@@ -71,7 +71,7 @@ class ServerWorker(object):
                 client_public_key = load_pem_public_key(msg)
                 
                 # chave priv no cert
-                private_key = certificate.get_private_key_cert("MSG_SERVER.key")
+                private_key = get_private_key_cert("MSG_SERVER.key")
 
                 # assinar as duas chaves
                 # pem = chave server | msg = chave cliente
@@ -86,7 +86,7 @@ class ServerWorker(object):
                 )
 
                 # cert pem 
-                cert = certificate.cert_get("MSG_SERVER.crt")
+                cert = cert_get("MSG_SERVER.crt")
 
                 keys_pair = mkpair(pem, signature)
                 cert_keys_pair = mkpair(keys_pair, cert)
@@ -98,12 +98,12 @@ class ServerWorker(object):
 
                 if msg2:
                     client_signature, client_cert = unpair(msg2)
-                    client_certificate = certificate.cert_load_serialized(client_cert)
+                    client_certificate = cert_load_serialized(client_cert)
 
-                    if certificate.valida_certificado(client_certificate, 'User 1 (SSI MSG Relay Client 1)') is False:
+                    if valida_certificado(client_certificate, 'User 1 (SSI MSG Relay Client 1)') is False:
                         print("Certificate is Invalid")
                     
-                    public_key = client_certificate.public_key()
+                    public_key = client_public_key()
                     public_key.verify(
                         signature,
                         msg + pem,

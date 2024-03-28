@@ -34,10 +34,9 @@ class ServerWorker(object):
 
     def valid_message(self, msg):
         key = msg.decode().split(" ")
-        print(key, "valid message key")
         if key[0] in ["askqueue", "help"] and len(key) == 1:
             return 1
-        elif key[0] == "-user" and len(key) == 2:
+        elif key[0] == "-user" and len(key) < 3:
             return 1
         elif key[0] == "getmsg" and len(key) == 2:
             return 1
@@ -68,10 +67,11 @@ class ServerWorker(object):
             # diferentes tipos de request do client
 
             if txt.startswith("-user"):
-                response = handle_user_command(txt, message_queue)
+                print("user info request received")
+                response = handle_user_command(txt)
 
             elif txt.startswith("help"):
-                response = handle_help_command(txt, message_queue)
+                response = handle_help_command(txt)
 
             elif txt.startswith("send"):
                 print(txt)
