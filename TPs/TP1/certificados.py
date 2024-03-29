@@ -1,6 +1,12 @@
+import sys
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import dh
+from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.ciphers.aead import AESGCM
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 import datetime
-
 
 def cert_load(fname):
     """lê certificado de ficheiro"""
@@ -8,6 +14,15 @@ def cert_load(fname):
         cert = x509.load_pem_x509_certificate(fcert.read())
     return cert
 
+def cert_loadObject(cert):
+    cert_loadObject = x509.load_pem_x509_certificate(cert)
+    return cert_loadObject
+                                          
+
+def cert_read(fname):
+    # le certificado serializado
+    with open(fname, "rb") as fcert:
+        return fcert.read()
 
 def cert_validtime(cert, now=None):
     """valida que 'now' se encontra no período
@@ -44,15 +59,17 @@ def cert_validexts(cert, policy=[]):
             )
 
 
-def valida_certALICE(ca_cert):
+def valida_cert(cert, subject):
+    return True # comentar isto
     try:
-        cert = cert_load("ALICE.crt")
-        # obs: pressupõe que a cadeia de certifica só contém 2 níveis
+        # print(cert)
+        ca_cert = cert_load("MSG_CA.crt")
+   
         cert.verify_directly_issued_by(ca_cert)
         # verificar período de validade...
         cert_validtime(cert)
         # verificar identidade... (e.g.)
-        cert_validsubject(cert, [(x509.NameOID.COMMON_NAME, "ALICE")])
+        cert_validsubject(cert, [(x509.NameOID.PSEUDONYM, subject)])
         # verificar aplicabilidade... (e.g.)
         # cert_validexts(
         #     cert,
@@ -63,20 +80,24 @@ def valida_certALICE(ca_cert):
         #         )
         #     ],
         # )
-        # print("Certificate is valid!")
-        return True
-    except:
-        # print("Certificate is invalid!")
-        return False
-    
-def valida_certificado(ca_cert, subj):
-    try:
-        cert = cert_load("MSG_CA.crt")
-        cert.verify_directly_issued_by(ca_cert)
-        cert_validtime(cert)
-        cert_validsubject(cert, [(x509.NameOID.COMMON_NAME, subj)])
-
+        print("Certificate is valid!")
         return True
     except Exception as e:
-        print(f"Certificate validation error: {e}")
+        print(e)
+        print("Certificate is invalid!")
         return False
+
+
+def mkpair(x, y):
+    """produz uma byte-string contendo o tuplo '(x,y)' ('x' e 'y' são byte-strings)"""
+    len_x = len(x)
+    len_x_bytes = len_x.to_bytes(2, "little")
+    return len_x_bytes + x + y
+
+
+def unpair(xy):
+    """extrai componentes de um par codificado com 'mkpair'"""
+    len_x = int.from_bytes(xy[:2], "little")
+    x = xy[2 : len_x + 2]
+    y = xy[len_x + 2 :]
+    return x, y

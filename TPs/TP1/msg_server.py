@@ -10,11 +10,18 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
+from certificados import *
+
 
 conn_cnt = 0
 conn_port = 8443
-max_msg_size = 1000
+max_msg_size = 9999
+max_send_msg_size = 1000
 
+cert_srv = "MSG_SERVER.crt"
+key_srv = "MSG_SERVER.key"
 
 # Variaveis
 
@@ -30,7 +37,24 @@ class ServerWorker(object):
         self.addr = addr
         self.msg_cnt = 0
         self.shared_key = None
+        self.srv_privRSA_KEY = self.handleKey(key_srv)
+        self.cert = None
         self.algorythm_AES = None
+
+    def handleKey(self, key_path):
+        fileKey = open(key_path, "rb")
+        data = fileKey.read()
+        fileKey.close()
+
+        password = "1234"
+        password_bytes = password.encode('utf-8')
+        
+        key = serialization.load_pem_private_key(
+                data,
+                password=password_bytes 
+            )
+
+        return key
 
     def valid_message(self, msg):
         key = msg.decode().split(" ")
@@ -53,7 +77,7 @@ class ServerWorker(object):
         # ALTERAR AQUI COMPORTAMENTO DO SERVIDOR
         #
 
-        msg = decode_message(msg, self.shared_key, self.algorythm_AES)
+        msg = decode_message(msg, self.shared_DHKey, self.algorythm_AES)
 
         txt = msg.decode()
         print('%d : %r' % (self.id, txt))
@@ -84,34 +108,99 @@ class ServerWorker(object):
                 response = handle_getmsg_command(txt, message_queue)
 
         # print(response)
-        return encode_message(response, self.shared_key, self.algorythm_AES)
+        return encode_message(response, self.shared_DHKey, self.algorythm_AES)
 
     async def handshake(self, writer, reader):
 
-        # p = 0xFFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD129024E088A67CC74020BBEA63B139B22514A08798E3404DDEF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7EDEE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3DC2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F83655D23DCA3AD961C62F356208552BB9ED529077096966D670C354E4ABC9804F1746C08CA18217C32905E462E36CE3BE39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9DE2BCBF6955817183995497CEA956AE515D2261898FA051015728E5A8AACAA68FFFFFFFFFFFFFFFF
-        # g = 2
-        #parameters = dh.DHParameterNumbers(p,g).parameters()
+        print("server aguarda a geração dos parametros")
 
         # espera receber os parametros do cliente
         param_bytes = await reader.read(max_msg_size)
 
+        print("server recebeu os parametros")
+
         # desserializar os parametros
         parameters = serialization.load_pem_parameters(param_bytes)
 
-        client_private_key = parameters.generate_private_key()
-        client_public_key_bytes = client_private_key.public_key().public_bytes(
+        server_private_key = parameters.generate_private_key()
+        server_public_key_bytes = server_private_key.public_key().public_bytes(
             encoding=serialization.Encoding.PEM,
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
-        # print(client_public_key_bytes)
-        writer.write(client_public_key_bytes)
+        print("espera pela chave dh do cliente...")
 
+        # server recebe a chave publica do cliente
+        client_public_key_bytes = await reader.read(max_msg_size)
+        client_public_key = serialization.load_pem_public_key(client_public_key_bytes)
+        
+        # para da chave publica do server e da chave publica do cliente
+        chaves_pubServ_pubCli = mkpair(server_public_key_bytes, client_public_key_bytes)
+        # print(chaves_pubServ_pubCli)
+        print("assinar chaves")
 
-        server_public_key_bytes = await reader.read(max_msg_size)
-        server_public_key = serialization.load_pem_public_key(server_public_key_bytes)
+        # assinar o par das chaves com a do chave privada rsa server
+        sign_Keys = self.srv_privRSA_KEY.sign(
+            chaves_pubServ_pubCli,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        # print("chaves assinadas", sign_Keys)
 
-        shared_key = client_private_key.exchange(server_public_key)
+        # par das chaves assinadas com a chave publica do server
+        pair_pubKeyServ_signKeys = mkpair(server_public_key_bytes, sign_Keys) 
+        # print("Par de chaves: ", pair_pubKeyServ_signKeys)
+
+        cert_server = cert_read(cert_srv)
+        # print("certificado do server: ", cert_server)
+
+        # certificado do server e as chaves publicas dh do cliente e do server
+        reply = mkpair(pair_pubKeyServ_signKeys, cert_server)
+
+        # print(reply)
+        
+        print("enviar chaves assinadas pelo server")
+
+        writer.write(reply)
+
+        print("esperar pelas chaves assinadas pelo cliente...")
+
+        pair_signKeys_certCli = await reader.read(max_msg_size)
+
+        sign_KeysCli, cert_client_bytes = unpair(pair_signKeys_certCli)
+
+        cert_client = cert_loadObject(cert_client_bytes)
+        print("cereal number", cert_client.serial_number)
+
+        chaves_pubCli_pubSrv = mkpair(client_public_key_bytes, server_public_key_bytes)
+
+        print("pares descompactados")
+        print("validar certificado do cliente")
+
+        teste = valida_cert(cert_client, "MSG_CLI1")
+        # if not teste: print("Certificado não validado")
+
+        print("validar chaves assinadas do server")
+
+        # validar se as chaves recebidas estão corretas
+        public_RSA_key_client = cert_client.public_key()
+        public_RSA_key_client.verify(
+            sign_KeysCli,
+            chaves_pubCli_pubSrv,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+
+        print("derivar chave partilhada")
+
+        shared_key = server_private_key.exchange(client_public_key)
+
 
         derived_key = HKDF(
             algorithm=hashes.SHA256(),
@@ -120,19 +209,11 @@ class ServerWorker(object):
             info=b'handshake data',
         ).derive(shared_key)
 
-        # salt = os.urandom(16)
+        print(f"Derived key: {derived_key}")
 
-        # kdf = PBKDF2HMAC(
-        #    algorithm=hashes.SHA256(),
-        #    length=64,
-        #    salt=salt,
-        #    iterations=480000,
-        # )
+        self.shared_DHKey = derived_key # assign new key
 
-        self.shared_key = derived_key
-        print(self.shared_key, ": SHARED KEY")
-        # key = kdf.derive(self.shared_key)
-        self.algorythm_AES = algorithms.AES(self.shared_key)
+        self.algorythm_AES = algorithms.AES(self.shared_DHKey)
 
 
 def uid_gen(client_address):
