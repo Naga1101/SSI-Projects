@@ -18,8 +18,7 @@ conn_port = 8443
 max_msg_size = 9999
 max_send_msg_size = 1000
 
-cert_cli = "MSG_CLI1.crt"
-key_cli = "MSG_CLI1.key"
+p12_file = "MSG_CLI1.p12"
 
 class Client:
     """ Classe que implementa a funcionalidade de um CLIENTE. """
@@ -30,40 +29,29 @@ class Client:
         self.msg_cnt = 0
         self.msg_cnt = 0
         self.shared_key = None
-        self.cli_privRSA_KEY = self.handleKey(key_cli)  # chace dos p12
+        self.cli_privRSA_KEY = self.handleKey()  # chave dos p12
         self.cert = None
         self.algorythm_AES = None
 
-    def handleKey(self, key_path):
-        fileKey = open(key_path, "rb")
-        data = fileKey.read()
-        fileKey.close()
+    def handleKey(self):
 
-        password = "1234"
-        password_bytes = password.encode('utf-8')
-        
-        key = serialization.load_pem_private_key(
-                data,
-                password=password_bytes 
-            )
+        private_key = get_private_key(p12_file)
 
-        return key
-
+        return private_key
 
     def process(self, msg):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
         self.msg_cnt += 1
-        #
-        # ALTERAR AQUI COMPORTAMENTO DO CLIENTE
-        #
-
-        if msg != b"": msg = decode_message(msg, self.shared_DHKey, self.algorythm_AES)   
+        
+        if msg != b"": 
+            msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, p12_file)   
 
         #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
+        
         print("\n" + msg.decode())
-        print('Input message to send (empty to finish)')
+        print('Input message to send ex: help (empty to finish)')
 
         command = input().strip()
         if command.startswith('-user'):
@@ -76,7 +64,7 @@ class Client:
                 fname = ""
                 message = "-user"    
 
-            return encode_message(message.encode(), self.shared_DHKey, self.algorythm_AES)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES, p12_file)
 
         if command.startswith('send'):
             print("Enter message body: ")
@@ -87,31 +75,34 @@ class Client:
             if message_size > max_msg_size:
                 print("Message reached 1000 bytes limit, unable to send")
             else:
-                # falta caso subject ter mais de 1 palavra
-                # uid vai com o certificado?
                 message = f"{command} | {message_body}"
 
-                return encode_message(message.encode(), self.shared_DHKey, self.algorythm_AES)
+                return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
 
         elif command.startswith('askqueue'):
+
             message = 'askqueue'
-            return encode_message(message.encode(), self.shared_DHKey, self.algorythm_AES)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
 
         elif command.startswith('help'):
+
             message = 'help'
-            return encode_message(message.encode(), self.shared_DHKey, self.algorythm_AES)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
 
         elif command.startswith('getmsg'):
+
             msg_number = command.split()[1]
             message = f"getmsg {msg_number}"
 
-            return encode_message(message.encode(), self.shared_DHKey, self.algorythm_AES)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
 
-        return encode_message(command.encode(), self.shared_DHKey, self.algorythm_AES)
+        return process_send_message(command.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
 
     async def handshake(self, writer, reader):
 
-        print("cliente a gerar os parametros")
+        print("-----------------HANDSHAKE------------------------\n")
+
+        print("Cliente a gerar os parametros")
 
         parameters = dh.generate_parameters(generator=2, key_size=2048)
 
@@ -121,7 +112,7 @@ class Client:
             format=serialization.ParameterFormat.PKCS3
         )
 
-        print("cliente envia os parametros")
+        print("Cliente envia os parametros")
 
         # enviar ao servidor
         writer.write(param_bytes)
@@ -137,7 +128,7 @@ class Client:
         # cliente envia a sua public key gerada pelos parametros dh
         writer.write(client_public_key_bytes)
 
-        print("esperar pelas chaves assinadas pelo server...")
+        print("Esperar pelas chaves assinadas pelo server...")
 
         # espera pela resposta
         reply = await reader.read(max_msg_size)
@@ -155,13 +146,13 @@ class Client:
         # criar um par de chaves para validar as sign Keys
         pair_pubKeyServ_pubKeyCli = mkpair(server_public_key_bytes, client_public_key_bytes)
         
-        print("pares descompactados")
-        print("validar certificado do server")
+        print("Pares descompactados")
+        print("Validar certificado do server")
 
         teste = valida_cert(cert_server, 'MSG_SERVER')
         # if not teste: print("Certificado não validado")
 
-        print("validar chaves assinadas do server")
+        print("Validar chaves assinadas do server")
 
         # validar se as chaves recebidas estão corretas
         public_RSA_key_server = cert_server.public_key()
@@ -175,7 +166,7 @@ class Client:
             hashes.SHA256()
         )
 
-        print("derivar chave partilhada")
+        print("Derivar chave partilhada")
         
         # derivar a chave
         server_public_key = serialization.load_pem_public_key(server_public_key_bytes)
@@ -204,15 +195,19 @@ class Client:
             hashes.SHA256()
         )
 
-        cert_client = cert_read(cert_cli)
+        certificate_client = get_certificado(p12_file)
+        cert_client = certificate_client.public_bytes(encoding=serialization.Encoding.PEM)
+        #cert_client = cert_read(cert_cli)
 
         pair_signKeys_certCli = mkpair(sign_Keys, cert_client)
 
-        print("enviar chaves assinadas pelo cliente")
+        print("Enviar chaves assinadas pelo cliente")
 
         writer.write(pair_signKeys_certCli)
         
         self.algorythm_AES = algorithms.AES(self.shared_DHKey)
+        
+        print("--------------------------------------------------\n")
 
 #
 #

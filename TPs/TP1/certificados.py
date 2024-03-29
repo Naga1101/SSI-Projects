@@ -5,8 +5,26 @@ from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+
 from cryptography import x509
 import datetime
+
+def get_userdata(p12_fname):
+    with open(p12_fname, "rb") as f:
+        p12 = f.read()
+    password = None
+    (private_key, user_cert, [ca_cert]) = load_key_and_certificates(p12, password)
+    return (private_key, user_cert, ca_cert)
+
+
+def get_certificado(p12_fname):
+    _, cert, _ = get_userdata(p12_fname)
+    return cert
+
+def get_private_key(p12_fname):
+    private_key,_,_ = get_userdata(p12_fname)
+    return private_key
 
 def cert_load(fname):
     """lê certificado de ficheiro"""

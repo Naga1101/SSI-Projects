@@ -20,8 +20,7 @@ conn_port = 8443
 max_msg_size = 9999
 max_send_msg_size = 1000
 
-cert_srv = "MSG_SERVER.crt"
-key_srv = "MSG_SERVER.key"
+p12_file = "MSG_SERVER.p12"
 
 # Variaveis
 
@@ -37,24 +36,16 @@ class ServerWorker(object):
         self.addr = addr
         self.msg_cnt = 0
         self.shared_key = None
-        self.srv_privRSA_KEY = self.handleKey(key_srv)
+        self.srv_privRSA_KEY = self.handleKey()
         self.cert = None
         self.algorythm_AES = None
 
-    def handleKey(self, key_path):
-        fileKey = open(key_path, "rb")
-        data = fileKey.read()
-        fileKey.close()
+    def handleKey(self):
 
-        password = "1234"
-        password_bytes = password.encode('utf-8')
-        
-        key = serialization.load_pem_private_key(
-                data,
-                password=password_bytes 
-            )
+        private_key = get_private_key(p12_file)
 
-        return key
+        return private_key
+    
 
     def valid_message(self, msg):
         key = msg.decode().split(" ")
@@ -73,17 +64,13 @@ class ServerWorker(object):
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
         self.msg_cnt += 1
-        #
-        # ALTERAR AQUI COMPORTAMENTO DO SERVIDOR
-        #
 
-        msg = decode_message(msg, self.shared_DHKey, self.algorythm_AES)
+        msg, sender = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
         txt = msg.decode()
         print('%d : %r' % (self.id, txt))
-        #new_msg = txt.upper().encode()
 
-        #return new_msg if len(new_msg)>0 else None
+        # caso nao entre em nenhuma condição
         response = "Invalid command or missing arguments! Try help".encode()
 
         if self.valid_message(msg) == 1:
@@ -91,33 +78,33 @@ class ServerWorker(object):
             # diferentes tipos de request do client
 
             if txt.startswith("-user"):
+
                 print("user info request received")
-                response = handle_user_command(txt)
+                response = handle_user_command(txt, sender)
 
             elif txt.startswith("help"):
                 response = handle_help_command(txt)
 
             elif txt.startswith("send"):
                 print(txt)
-                response = handle_send_command(txt, message_queue)
+                response = handle_send_command(txt, message_queue, sender)
 
             elif txt.startswith("askqueue"):
-                response = handle_askqueue_command(txt, message_queue)
+                response = handle_askqueue_command(txt, message_queue, sender)
 
             elif txt.startswith("getmsg"):
-                response = handle_getmsg_command(txt, message_queue)
+                response = handle_getmsg_command(txt, message_queue, sender)
 
         # print(response)
-        return encode_message(response, self.shared_DHKey, self.algorythm_AES)
+        return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
     async def handshake(self, writer, reader):
 
-        print("server aguarda a geração dos parametros")
-
-        # espera receber os parametros do cliente
+        print("-----------------HANDSHAKE------------------------\n")
+        print("A aguardar a geração dos parâmetros e envio do cliente")
         param_bytes = await reader.read(max_msg_size)
 
-        print("server recebeu os parametros")
+        print("Parâmetros recebidos")
 
         # desserializar os parametros
         parameters = serialization.load_pem_parameters(param_bytes)
@@ -128,7 +115,7 @@ class ServerWorker(object):
             format=serialization.PublicFormat.SubjectPublicKeyInfo
         )
 
-        print("espera pela chave dh do cliente...")
+        print("Server - à espera pela chave dh do cliente...")
 
         # server recebe a chave publica do cliente
         client_public_key_bytes = await reader.read(max_msg_size)
@@ -137,7 +124,7 @@ class ServerWorker(object):
         # para da chave publica do server e da chave publica do cliente
         chaves_pubServ_pubCli = mkpair(server_public_key_bytes, client_public_key_bytes)
         # print(chaves_pubServ_pubCli)
-        print("assinar chaves")
+        print("Server - assinar as chaves")
 
         # assinar o par das chaves com a do chave privada rsa server
         sign_Keys = self.srv_privRSA_KEY.sign(
@@ -148,13 +135,16 @@ class ServerWorker(object):
             ),
             hashes.SHA256()
         )
-        # print("chaves assinadas", sign_Keys)
+        print("Server - chaves assinadas")
 
         # par das chaves assinadas com a chave publica do server
         pair_pubKeyServ_signKeys = mkpair(server_public_key_bytes, sign_Keys) 
         # print("Par de chaves: ", pair_pubKeyServ_signKeys)
 
-        cert_server = cert_read(cert_srv)
+        #cert_server = cert_read(cert_srv)
+        certificate_server = get_certificado(p12_file)
+        cert_server = certificate_server.public_bytes(encoding=serialization.Encoding.PEM)
+
         # print("certificado do server: ", cert_server)
 
         # certificado do server e as chaves publicas dh do cliente e do server
@@ -162,28 +152,32 @@ class ServerWorker(object):
 
         # print(reply)
         
-        print("enviar chaves assinadas pelo server")
+        print("A enviar chaves assinadas pelo server")
 
         writer.write(reply)
 
-        print("esperar pelas chaves assinadas pelo cliente...")
+        print("À espera pelas chaves assinadas pelo cliente...")
 
         pair_signKeys_certCli = await reader.read(max_msg_size)
 
         sign_KeysCli, cert_client_bytes = unpair(pair_signKeys_certCli)
 
         cert_client = cert_loadObject(cert_client_bytes)
-        print("cereal number", cert_client.serial_number)
+        print("Serial number: ", cert_client.serial_number)
 
         chaves_pubCli_pubSrv = mkpair(client_public_key_bytes, server_public_key_bytes)
 
-        print("pares descompactados")
-        print("validar certificado do cliente")
+        print("Pares de chaves descompactadors")
 
-        teste = valida_cert(cert_client, "MSG_CLI1")
-        # if not teste: print("Certificado não validado")
+        print("Iniciar Validação do certificado do cliente")
 
-        print("validar chaves assinadas do server")
+        valid = valida_cert(cert_client, "MSG_CLI1")
+        if valid: 
+            print("Certificado validado")
+            uid_gen(cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value)
+        else:
+            print("Validação do certificado falhada")
+            return -1
 
         # validar se as chaves recebidas estão corretas
         public_RSA_key_client = cert_client.public_key()
@@ -197,7 +191,7 @@ class ServerWorker(object):
             hashes.SHA256()
         )
 
-        print("derivar chave partilhada")
+        print("Derivar shared key")
 
         shared_key = server_private_key.exchange(client_public_key)
 
@@ -209,19 +203,19 @@ class ServerWorker(object):
             info=b'handshake data',
         ).derive(shared_key)
 
-        print(f"Derived key: {derived_key}")
+        print(f"Shared Key: {derived_key}")
 
         self.shared_DHKey = derived_key # assign new key
-
         self.algorythm_AES = algorithms.AES(self.shared_DHKey)
+        print("---------------------------------------------------")
 
 
-def uid_gen(client_address):
+def uid_gen(PSEUDONYM):
     last_uid = list(uids)[-1]
     next_uid = int(last_uid) + 1
-    uids[next_uid] = client_address
-    message_queue[next_uid] = []
-    return next_uid
+    uids[next_uid] = PSEUDONYM
+    message_queue[PSEUDONYM] = []
+    return PSEUDONYM
 
 #
 #
@@ -240,9 +234,7 @@ async def handle_echo(reader, writer):
     #setup shared key
     await srvwrk.handshake(writer, reader)   # Ver ordem com o ui gen
 
-    # gerar uid do utilizador
-    uid = uid_gen(addr)
-    print(f"Unique UID given to {addr} : {uid}")
+    print("Message Queue ", message_queue)
 
     data = await reader.read(max_msg_size)
     while True:

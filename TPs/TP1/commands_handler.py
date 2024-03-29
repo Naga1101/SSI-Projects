@@ -9,14 +9,17 @@ def get_userdata(p12_fname):
     print("DATA GET DONE")
     return (private_key, user_cert, ca_cert)
 
-def handle_send_command(txt, message_queue):
+def handle_send_command(txt, message_queue, sender):
     print("Send command received")
 
     tokens = txt.split()
 
-    sender = "TO BE DONE"
+    print(message_queue)
+    print(txt)
     i = 2
     uid = tokens[1]
+    print(uid, "UID")
+    print("Message Queue: ", message_queue)
 
     if uid not in message_queue:
         return "UID Doesnt exist".encode()
@@ -31,9 +34,10 @@ def handle_send_command(txt, message_queue):
 
     subject = " ".join(subject_tokens) 
     message = " ".join(tokens[i:])
-    timestamp = datetime.now().timestamp()
+    timestamp = datetime.now()
 
     print(f"UID: {uid}")
+    print(f"SENDER: {sender}")
     print(f"TIMESTAMP: {timestamp}")
     print(f"SUBJECT: {subject}")
     print(f"MESSAGE: {message}")
@@ -41,19 +45,19 @@ def handle_send_command(txt, message_queue):
     # aqui exception ou algum fix caso o uid nao exista
 
     # False = Ainda nao foi lida
-    message_queue[int(uid)].append((sender, timestamp, subject, message, False))
+    message_queue[uid].append((sender, timestamp, subject, message, False))
 
     print("Current message queue: ", message_queue)
 
     # Response must be in bytes
     return f"Message queued for UID {uid}".encode()
 
-def handle_askqueue_command(txt, message_queue):
+def handle_askqueue_command(txt, message_queue, sender):
     print("askqueue Command Received")
     # preciso verificar que uid enviou, usar 1 como placeholder
     response = "<NUM>:<SENDER>:<TIME>:<SUBJECT>\n"
 
-    uid_queue = message_queue[1]
+    uid_queue = message_queue[sender]
     print(message_queue)
     message_n = 1
 
@@ -69,17 +73,15 @@ def handle_askqueue_command(txt, message_queue):
     print(response)
     return response.encode()
 
-def handle_getmsg_command(txt, message_queue):
+def handle_getmsg_command(txt, message_queue, sender):
     print("GETMSG Command received")
-
-    uid_placeholder = 1
 
     tokens = txt.split()
     print(tokens)
     print(txt)
     msg_number = int(tokens[1]) - 1  # fix ao index
 
-    uid_queue = message_queue[uid_placeholder]
+    uid_queue = message_queue[sender]
 
     if msg_number < len(uid_queue):
         message = uid_queue[msg_number]
@@ -87,7 +89,7 @@ def handle_getmsg_command(txt, message_queue):
 
         # Marcar como lido
         msg_read = (message[0], message[1], message[2], message[3], True)
-        message_queue[uid_placeholder][msg_number] = msg_read
+        message_queue[sender][msg_number] = msg_read
 
         print("Message marked as read.")
         response = (f"Subject: {message[2]}\n"
@@ -100,13 +102,16 @@ def handle_getmsg_command(txt, message_queue):
 
     return response.encode()
 
-def handle_user_command(txt):
+def handle_user_command(txt, sender):
     args = txt.split()
     
     # caso de omissao
     if len(args) == 1:
         print("NAO TA FEITO")
-        response = "NAO TA FEITO"
+        fname = sender + ".p12"
+        private_key, user_cert, ca_cert = get_userdata(fname)
+
+        response = str(private_key) + "|\n" + str(user_cert) + "|\n" + str(ca_cert)
     
     # isto é so para o caso de vir com FNAME e nao por omissao
     else:
