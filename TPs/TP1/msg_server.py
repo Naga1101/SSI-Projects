@@ -51,8 +51,6 @@ class ServerWorker(object):
         key = msg.decode().split(" ")
         if key[0] in ["askqueue", "help"] and len(key) == 1:
             return 1
-        elif key[0] == "-user" and len(key) < 3:
-            return 1
         elif key[0] == "getmsg" and len(key) == 2:
             return 1
         elif key[0] == "send" and len(key) > 3:

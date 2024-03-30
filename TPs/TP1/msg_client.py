@@ -2,6 +2,7 @@
 import asyncio
 import socket
 import os
+import sys
 from encrypt_decypt_handler import *
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from cryptography.hazmat.primitives.asymmetric import dh
@@ -19,6 +20,7 @@ max_msg_size = 9999
 max_send_msg_size = 1000
 
 p12_file = "MSG_CLI1.p12"
+userdata = None
 
 class Client:
     """ Classe que implementa a funcionalidade de um CLIENTE. """
@@ -35,7 +37,7 @@ class Client:
 
     def handleKey(self):
 
-        private_key = get_private_key(p12_file)
+        private_key = get_private_key(userdata)
 
         return private_key
 
@@ -44,27 +46,29 @@ class Client:
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
         self.msg_cnt += 1
-        
         if msg != b"": 
-            msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, p12_file)   
+            print("---------------------------------------------------")
+            msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
         #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
         
         print("\n" + msg.decode())
+        if msg != b"":
+            print("\n---------------------------------------------------\n")
         print('Input message to send ex: help (empty to finish)')
 
         command = input().strip()
-        if command.startswith('-user'):
-            args = command.split()
+        #if command.startswith('-user'):
+        #    args = command.split()
 
-            if len(args) > 1:
-                fname = args[1]
-                message = f'-user {fname}'
-            else:
-                fname = ""
-                message = "-user"    
+        #    if len(args) > 1:
+        #        fname = args[1]
+        #        message = f'-user {fname}'
+        #    else:
+        #        fname = ""
+        #        message = "-user"    
 
-            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES, p12_file)
+        #    return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES, userdata)
 
         if command.startswith('send'):
             print("Enter message body: ")
@@ -77,26 +81,26 @@ class Client:
             else:
                 message = f"{command} | {message_body}"
 
-                return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
+                return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
         elif command.startswith('askqueue'):
 
             message = 'askqueue'
-            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
         elif command.startswith('help'):
 
             message = 'help'
-            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
         elif command.startswith('getmsg'):
 
             msg_number = command.split()[1]
             message = f"getmsg {msg_number}"
 
-            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
+            return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
-        return process_send_message(command.encode(), self.shared_DHKey, self.algorythm_AES,p12_file)
+        return process_send_message(command.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
     async def handshake(self, writer, reader):
 
@@ -195,7 +199,7 @@ class Client:
             hashes.SHA256()
         )
 
-        certificate_client = get_certificado(p12_file)
+        certificate_client = get_certificado(userdata)
         cert_client = certificate_client.public_bytes(encoding=serialization.Encoding.PEM)
         #cert_client = cert_read(cert_cli)
 
@@ -241,5 +245,21 @@ def run_client():
     loop = asyncio.get_event_loop()
     loop.run_until_complete(tcp_echo_client())
 
+def check_user_data():
+    global userdata
 
-run_client()
+    if len(sys.argv) != 3 or sys.argv[1] != "-user":
+        raise ValueError ("Usage: msg_client.py -user <FNAME>")
+    if not os.path.isfile(sys.argv[2]):
+        raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
+    else:
+        userdata = sys.argv[2]
+
+if __name__ == "__main__":
+    try:
+        check_user_data()
+        run_client()
+    except ValueError as e:
+        print(e)
+    except FileNotFoundError as e:
+        print(e)
