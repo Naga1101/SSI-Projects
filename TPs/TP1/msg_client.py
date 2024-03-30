@@ -50,9 +50,13 @@ class Client:
             print("---------------------------------------------------")
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
-        #print('Received (%d): %r' % (self.msg_cnt , msg.decode()))
-        
-        print("\n" + msg.decode())
+        # print error cases to sderr
+        message = msg.decode()
+        if message.startswith("MSG RELAY SERVICE: "):
+            sys.stderr.write("\n" + message + "\n")
+        else:
+            print("\n" + message)
+
         if msg != b"":
             print("\n---------------------------------------------------\n")
         print('Input message to send ex: help (empty to finish)')
@@ -153,8 +157,9 @@ class Client:
         print("Pares descompactados")
         print("Validar certificado do server")
 
-        teste = valida_cert(cert_server, 'MSG_SERVER')
-        # if not teste: print("Certificado não validado")
+        valid = valida_cert(cert_server, 'MSG_SERVER')
+        #if not valid:
+        #    sys.stderr("MSG RELAY SERVICE: verification error!")
 
         print("Validar chaves assinadas do server")
 

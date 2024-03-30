@@ -13,6 +13,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from certificados import *
+from logger import *
 
 
 conn_cnt = 0
@@ -20,10 +21,10 @@ conn_port = 8443
 max_msg_size = 9999
 max_send_msg_size = 1000
 
-p12_file = "MSG_SERVER.p12"
-
 # Variaveis
 
+session_file = generate_log_file()
+p12_file = "MSG_SERVER.p12"
 uids = {0: "MSG_SERVER"}
 message_queue = {}
 
@@ -69,32 +70,40 @@ class ServerWorker(object):
         print('%d : %r' % (self.id, txt))
 
         # caso nao entre em nenhuma condição
-        response = "Invalid command or missing arguments! Try help".encode()
+        response = """MSG RELAY SERVICE: command error!\n\n
+            • send <UID> <SUBJECT> 
+            • askqueue 
+            • getmsg <NUM>
+            • help
+            """.encode()
 
         if self.valid_message(msg) == 1:
 
             # diferentes tipos de request do client
 
-            if txt.startswith("-user"):
+            """if txt.startswith("-user"):
 
                 print("user info request received")
-                response = handle_user_command(txt, sender)
+                response = handle_user_command(txt, sender, session_file)"""
 
-            elif txt.startswith("help"):
-                response = handle_help_command(txt)
+            if txt.startswith("help"):
+                response = handle_help_command(txt, sender, session_file)
 
             elif txt.startswith("send"):
                 print(txt)
-                response = handle_send_command(txt, message_queue, sender)
+                response = handle_send_command(txt, message_queue, sender, session_file)
 
             elif txt.startswith("askqueue"):
-                response = handle_askqueue_command(txt, message_queue, sender)
+                response = handle_askqueue_command(txt, message_queue, sender, session_file)
 
             elif txt.startswith("getmsg"):
-                response = handle_getmsg_command(txt, message_queue, sender)
+                response = handle_getmsg_command(txt, message_queue, sender, session_file)
+            
+            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
-        # print(response)
-        return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
+        else:
+            log_invalid_command(session_file, sender)
+            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
     async def handshake(self, writer, reader):
 
@@ -172,7 +181,8 @@ class ServerWorker(object):
         valid = valida_cert(cert_client, "MSG_CLI1")
         if valid: 
             print("Certificado validado")
-            uid_gen(cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value)
+            # var sender para log
+            sender = uid_gen(cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value)
         else:
             print("Validação do certificado falhada")
             return -1
@@ -205,6 +215,8 @@ class ServerWorker(object):
 
         self.shared_DHKey = derived_key # assign new key
         self.algorythm_AES = algorithms.AES(self.shared_DHKey)
+        log_action(session_file, "Initial Handshake", sender, None)
+
         print("---------------------------------------------------")
 
 
@@ -249,6 +261,8 @@ async def handle_echo(reader, writer):
 
 
 def run_server():
+    global session_file
+    log_session_start(session_file)
     loop = asyncio.new_event_loop()
     coro = asyncio.start_server(handle_echo, '127.0.0.1', conn_port)
     server = loop.run_until_complete(coro)
@@ -261,6 +275,7 @@ def run_server():
     except KeyboardInterrupt:
         pass
     # Close the server
+    log_session_end(session_file)
     server.close()
     loop.run_until_complete(server.wait_closed())
     loop.close()

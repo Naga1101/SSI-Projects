@@ -1,15 +1,15 @@
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
 from datetime import datetime
+from logger import *
 
-def get_userdata(p12_fname):
+def get_userdata(p12_fname, session_file):
     with open(p12_fname, "rb") as f:
         p12 = f.read()
     password = None
     (private_key, user_cert, [ca_cert]) = load_key_and_certificates(p12, password)
-    print("DATA GET DONE")
     return (private_key, user_cert, ca_cert)
 
-def handle_send_command(txt, message_queue, sender):
+def handle_send_command(txt, message_queue, sender, session_file):
     print("Send command received")
 
     tokens = txt.split()
@@ -22,7 +22,8 @@ def handle_send_command(txt, message_queue, sender):
     print("Message Queue: ", message_queue)
 
     if uid not in message_queue:
-        return "UID Doesnt exist".encode()
+        log_invalid_action(session_file, "SENDMSG", sender)
+        return "MSG RELAY SERVICE: unknown uid!".encode()
 
     subject_tokens = []
     while tokens[i] != "|":
@@ -42,17 +43,15 @@ def handle_send_command(txt, message_queue, sender):
     print(f"SUBJECT: {subject}")
     print(f"MESSAGE: {message}")
 
-    # aqui exception ou algum fix caso o uid nao exista
 
-    # False = Ainda nao foi lida
     message_queue[uid].append((sender, timestamp, subject, message, False))
+    log_action(session_file, "SENDMSG", sender, uid)
 
     print("Current message queue: ", message_queue)
 
-    # Response must be in bytes
     return f"Message queued for UID {uid}".encode()
 
-def handle_askqueue_command(txt, message_queue, sender):
+def handle_askqueue_command(txt, message_queue, sender, session_file):
     print("askqueue Command Received")
     # preciso verificar que uid enviou, usar 1 como placeholder
     response = "<NUM>:<SENDER>:<TIME>:<SUBJECT>\n"
@@ -70,10 +69,11 @@ def handle_askqueue_command(txt, message_queue, sender):
                 response += f"{message_n}:{message[0]}:{message[1]}:{message[2]}\n"
             message_n += 1
 
-    print(response)
+    log_action(session_file, "ASKQUEUE", sender, None)
+
     return response.encode()
 
-def handle_getmsg_command(txt, message_queue, sender):
+def handle_getmsg_command(txt, message_queue, sender, session_file):
     print("GETMSG Command received")
 
     tokens = txt.split()
@@ -94,15 +94,18 @@ def handle_getmsg_command(txt, message_queue, sender):
         print("Message marked as read.")
         response = (f"Subject: {message[2]}\n"
                     f"Message: {message[3]}")
+        log_action(session_file, "GETMSG", sender, msg_number + 1)
+
         return response.encode()
 
     else:
         print(f"Message number {msg_number + 1} doesnt exist")
-        response = f"Message number {msg_number + 1} doesnt exist, or its alread marked as read"
+        log_invalid_action(session_file, "GETMSG", sender)
+        response = "MSG RELAY SERVICE: unknown message!"
 
     return response.encode()
 
-def handle_user_command(txt, sender):
+"""def handle_user_command(txt, sender, session_file):
     args = txt.split()
     
     # caso de omissao
@@ -122,15 +125,17 @@ def handle_user_command(txt, sender):
         # depois temos de arranjar esta informação direito
         response = str(private_key) + "|\n" + str(user_cert) + "|\n" + str(ca_cert)
 
-    return response.encode()
+    return response.encode()"""
 
-def handle_help_command(txt):
+def handle_help_command(txt, sender, session_file):
     help_text = """
-    • -user <FNAME>
     • send <UID> <SUBJECT> 
     • askqueue 
     • getmsg <NUM>
     • help
     """
+
+    log_action(session_file, "HELP", sender, None)
+
     response = help_text.encode()
     return response

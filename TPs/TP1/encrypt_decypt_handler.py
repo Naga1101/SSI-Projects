@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.exceptions import InvalidSignature
 from certificados import *
 
 def decode_message(txt, key, algorythm):
@@ -69,28 +70,31 @@ def process_send_message(txt, key, algorithm, source):
     return final_message
 
 def process_received_message(txt, key, algorithm, source):
+    try:
+        sign_message, cert = unpair(txt)
+        signature, encoded_message = unpair(sign_message)
 
-    sign_message, cert = unpair(txt)
-    signature, encoded_message = unpair(sign_message)
+        certificate = cert_loadObject(cert)
 
-    certificate = cert_loadObject(cert)
+        # verificar a assinatura
 
-    # verificar a assinatura
+        certificate.public_key().verify(
+            signature,
+            encoded_message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        
+        plainText = decode_message(encoded_message, key, algorithm)
 
-    certificate.public_key().verify(
-        signature,
-        encoded_message,
-        padding.PSS(
-            mgf=padding.MGF1(hashes.SHA256()),
-            salt_length=padding.PSS.MAX_LENGTH
-        ),
-        hashes.SHA256()
-    )
-    
-    plainText = decode_message(encoded_message, key, algorithm)
+        sender = certificate.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value
 
-    sender = certificate.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value
+        return plainText, sender
 
-    return plainText, sender
+    except InvalidSignature:
+        return "MSG RELAY SERVICE: verification error!", None
 
 
