@@ -234,13 +234,9 @@ async def tcp_echo_client():
 
     msg = client.process(b"")
 
-    while msg:
-        writer.write(msg)
-        msg = await reader.read(max_msg_size)
-        if msg:
-            msg = client.process(msg)
-        else:
-            break
+    writer.write(msg)
+    msg = await reader.read(max_msg_size)
+
     writer.write(b'\n')
     print('Socket closed!')
     writer.close()
