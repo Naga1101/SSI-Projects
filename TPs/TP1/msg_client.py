@@ -40,12 +40,8 @@ class Client:
         private_key = get_private_key(userdata)
 
         return private_key
-
-    def process(self, msg):
-        """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
-            Retorna a mensagem a transmitir como resposta (`None` para
-            finalizar ligação) """
-        self.msg_cnt += 1
+    
+    def handle_responde(self, msg):
         if msg != b"": 
             print("---------------------------------------------------")
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
@@ -57,22 +53,16 @@ class Client:
         else:
             print("\n" + message)
 
-        if msg != b"":
-            print("\n---------------------------------------------------\n")
+    def process(self):
+        """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
+            Retorna a mensagem a transmitir como resposta (`None` para
+            finalizar ligação) """
+        self.msg_cnt += 1
+        
+        print("\n---------------------------------------------------\n")
         print('Input message to send ex: help (empty to finish)')
 
         command = input().strip()
-        #if command.startswith('-user'):
-        #    args = command.split()
-
-        #    if len(args) > 1:
-        #        fname = args[1]
-        #        message = f'-user {fname}'
-        #    else:
-        #        fname = ""
-        #        message = "-user"    
-
-        #    return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES, userdata)
 
         if command.startswith('send'):
             print("Enter message body: ")
@@ -232,13 +222,15 @@ async def tcp_echo_client():
 
     await client.handshake(writer, reader)
 
-    msg = client.process(b"")
+    msg = client.process()
 
     writer.write(msg)
     msg = await reader.read(max_msg_size)
 
+    client.handle_responde(msg)
+
     writer.write(b'\n')
-    print('Socket closed!')
+    print('\nSocket closed!')
     writer.close()
 
 

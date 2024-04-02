@@ -7,6 +7,10 @@ session_end = None
 def generate_log_file():
     global session_start
 
+    logs_dir = "logs"
+    if not os.path.exists(logs_dir):
+        os.makedirs(logs_dir)
+
     session_start = datetime.now()
     session_date = session_start.strftime("%Y-%m-%d")
     session_file = "logs/sessions-" + session_date + ".log"
