@@ -1,7 +1,7 @@
 # Código baseado em https://docs.python.org/3.6/library/asyncio-stream.html#tcp-echo-client-using-streams
 import asyncio
 import os
-from commands_handler import *
+from server_commands_handler import *
 from encrypt_decypt_handler import *
 from queue import Queue
 from cryptography.hazmat.primitives.asymmetric import dh
@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from certificados import *
 from logger import *
-
+import bson
 
 conn_cnt = 0
 conn_port = 8443
@@ -48,13 +48,8 @@ class ServerWorker(object):
         return private_key
     
 
-    def valid_message(self, msg):
-        key = msg.decode().split(" ")
-        if key[0] in ["askqueue", "help"] and len(key) == 1:
-            return 1
-        elif key[0] == "getmsg" and len(key) == 2:
-            return 1
-        elif key[0] == "send" and len(key) > 3:
+    def valid_message(self, id):
+        if id in [1, 2, 3]:
             return 1
         return -1
 
@@ -66,8 +61,13 @@ class ServerWorker(object):
 
         msg, sender = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
-        txt = msg.decode()
-        print('%d : %r' % (self.id, txt))
+        dict = bson.loads(msg)
+        id_command = dict['tipo'] 
+
+        print(dict, sender)
+        print(id_command)
+        print('%d : %r' % (self.id, dict))
+
 
         # caso nao entre em nenhuma condição
         response = """MSG RELAY SERVICE: command error!\n\n
@@ -77,7 +77,7 @@ class ServerWorker(object):
             • help
             """.encode()
 
-        if self.valid_message(msg) == 1:
+        if self.valid_message(id_command) == 1:
 
             # diferentes tipos de request do client
 
@@ -86,18 +86,14 @@ class ServerWorker(object):
                 print("user info request received")
                 response = handle_user_command(txt, sender, session_file)"""
 
-            if txt.startswith("help"):
-                response = handle_help_command(txt, sender, session_file)
+            if id_command == 1:
+                response = handle_send_command(message_queue, sender, session_file, dict['uid'], dict['subject'], dict['body'])
 
-            elif txt.startswith("send"):
-                print(txt)
-                response = handle_send_command(txt, message_queue, sender, session_file)
+            elif id_command == 2:
+                response = handle_askqueue_command(message_queue, sender, session_file)
 
-            elif txt.startswith("askqueue"):
-                response = handle_askqueue_command(txt, message_queue, sender, session_file)
-
-            elif txt.startswith("getmsg"):
-                response = handle_getmsg_command(txt, message_queue, sender, session_file)
+            elif id_command == 3:
+                response = handle_getmsg_command(message_queue, sender, session_file, dict['num'])
             
             return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 

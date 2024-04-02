@@ -1,3 +1,34 @@
+import bson
+from datetime import datetime
+
+# Example message arguments
+sender = "Alice"
+recipient = "Bob"
+content = "Hello, Bob!"
+timestamp = datetime.now()
+
+# Define the message dictionary
+message = {
+    "sender": sender,
+    "recipient": recipient,
+    "content": content,
+    "timestamp": timestamp
+}
+
+# Convert the dictionary to BSON
+bson_data = bson.dumps(message)
+
+print(bson_data + b"\nteste")
+
+# Decode the BSON data
+decoded_message = bson.loads(bson_data)
+
+print("2",bson.loads(bson_data + b"teste"))
+
+# Print the decoded message
+print("1", decoded_message)
+
+
 # Código baseado em https://docs.python.org/3.6/library/asyncio-stream.html#tcp-echo-client-using-streams
 import asyncio
 import socket
@@ -43,8 +74,8 @@ class Client:
         return private_key
     
     def handle_responde(self, msg):
-        print(msg)
         if msg != b"": 
+            print("---------------------------------------------------")
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
         # print error cases to sderr
@@ -55,7 +86,7 @@ class Client:
             print("\n" + message)
 
     def start_sending_process(self, msg):
-        return process_send_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)
+        return process_send_message(msg.encode(), self.shared_DHKey, self.algorythm_AES, userdata)
 
     def process(self):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
@@ -64,38 +95,36 @@ class Client:
         self.msg_cnt += 1
         status = 0
 
-        message = ""
-
         if sys.argv[3] == "help":
+
             message = help_command()
             status = 1
         
         elif sys.argv[3] == "askqueue":
             
             message = askqueue_command()
+            message = 'askqueue'
     
         elif sys.argv[3] == "send":
-            send_header_handdler(sys.argv[4], sys.argv[5])
+            send_header_handdler(sys.argv[3], sys.argv[4], sys.argv[5])
+            
+            print("Enter message body: ")
+            message_body = input()
 
-            if len(sys.argv) >= 6:
-                print("Enter message body: ")
-                message_body = input()
+            message_size = len(message_body) + len(sys.argv[4:])
 
-                if len(message_body) > max_msg_size:
-                    print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
-                else:
-                    message = send_add_body(message_body)
-                    # print(message)
-                    # message = f"{' '.join(sys.argv[3:])} | {message_body}"
+            if message_size > max_msg_size:
+                print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
+            else:
+                message = send_add_body(message_body)
+                print(message)
+                message = f"{' '.join(sys.argv[3:])} | {message_body}"
         
         elif sys.argv[3] == "getmsg":
             
             msg_number = sys.argv[4]
             message = getmsg_command(msg_number)
-
-        else:
-            message = invalid_commad()
-            status = 1
+            message = f"getmsg {msg_number}"
 
         return message, status
 
@@ -224,7 +253,7 @@ async def tcp_echo_client():
     client = Client(addr)
 
     msg, status = client.process()
-    # print(msg, status)
+
     if status == 0:
         await client.handshake(writer, reader)  
 
@@ -237,9 +266,9 @@ async def tcp_echo_client():
     else:
         print(msg)
 
-        writer.write(b'\n')
-        print('\nSocket closed!')
-        writer.close()
+    writer.write(b'\n')
+    print('\nSocket closed!')
+    writer.close()
 
 
 def run_client():
@@ -249,7 +278,7 @@ def run_client():
 def check_user_data():
     global userdata
 
-    if len(sys.argv) < 4 or sys.argv[1] != "-user":
+    if len(sys.argv) < 3 or sys.argv[1] != "-user":
         raise ValueError ("Usage: msg_client.py -user <FNAME> args")
     if not os.path.isfile(sys.argv[2]):
         raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
