@@ -224,7 +224,8 @@ def uid_gen(PSEUDONYM):
     last_uid = list(uids)[-1]
     next_uid = int(last_uid) + 1
     uids[next_uid] = PSEUDONYM
-    message_queue[PSEUDONYM] = []
+    if PSEUDONYM not in message_queue:
+        message_queue[PSEUDONYM] = []
     return PSEUDONYM
 
 #

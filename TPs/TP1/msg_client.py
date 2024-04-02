@@ -53,14 +53,48 @@ class Client:
         else:
             print("\n" + message)
 
+    def start_sending_process(self, msg):
+        return process_send_message(msg.encode(), self.shared_DHKey, self.algorythm_AES, userdata)
+
     def process(self):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
         self.msg_cnt += 1
+
+        if sys.argv[3] == "help":
+
+            message = 'help'
         
-        print("\n---------------------------------------------------\n")
-        print('Input message to send ex: help (empty to finish)')
+        elif sys.argv[3] == "askqueue":
+            
+            message = 'askqueue'
+    
+        elif sys.argv[3] == "send":
+            
+            print("Enter message body: ")
+            message_body = input()
+
+            message_size = len(message_body) + len(sys.argv[4:])
+
+            if message_size > max_msg_size:
+                print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
+            else:
+            
+                message = f"{' '.join(sys.argv[3:])} | {message_body}"
+        
+        elif sys.argv[3] == "getmsg":
+            
+            msg_number = sys.argv[4]
+            message = f"getmsg {msg_number}"
+
+        return message
+
+
+        
+        """
+        #print("\n---------------------------------------------------\n")
+        #print('Input message to send ex: help (empty to finish)')
 
         command = input().strip()
 
@@ -94,7 +128,7 @@ class Client:
 
             return process_send_message(message.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
 
-        return process_send_message(command.encode(), self.shared_DHKey, self.algorythm_AES,userdata)
+        return process_send_message(command.encode(), self.shared_DHKey, self.algorythm_AES,userdata)"""
 
     async def handshake(self, writer, reader):
 
@@ -220,11 +254,15 @@ async def tcp_echo_client():
     addr = writer.get_extra_info('peername')
     client = Client(addr)
 
-    await client.handshake(writer, reader)
-
     msg = client.process()
 
-    writer.write(msg)
+    print(msg)
+
+    await client.handshake(writer, reader)
+
+    enc_msg = client.start_sending_process(msg)
+
+    writer.write(enc_msg)
     msg = await reader.read(max_msg_size)
 
     client.handle_responde(msg)
@@ -241,12 +279,13 @@ def run_client():
 def check_user_data():
     global userdata
 
-    if len(sys.argv) != 3 or sys.argv[1] != "-user":
-        raise ValueError ("Usage: msg_client.py -user <FNAME>")
+    if len(sys.argv) < 3 or sys.argv[1] != "-user":
+        raise ValueError ("Usage: msg_client.py -user <FNAME> args")
     if not os.path.isfile(sys.argv[2]):
         raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
     else:
         userdata = sys.argv[2]
+
 
 if __name__ == "__main__":
     try:
