@@ -35,7 +35,7 @@ def handle_send_command(txt, message_queue, sender, session_file):
 
     subject = " ".join(subject_tokens) 
     message = " ".join(tokens[i:])
-    timestamp = datetime.now()
+    timestamp = datetime.now().timestamp()
 
     print(f"UID: {uid}")
     print(f"SENDER: {sender}")

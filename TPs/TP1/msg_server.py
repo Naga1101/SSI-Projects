@@ -107,9 +107,10 @@ class ServerWorker(object):
 
     async def handshake(self, writer, reader):
 
+        param_bytes = await reader.read(max_msg_size)
+
         print("-----------------HANDSHAKE------------------------\n")
         print("A aguardar a geração dos parâmetros e envio do cliente")
-        param_bytes = await reader.read(max_msg_size)
 
         print("Parâmetros recebidos")
 

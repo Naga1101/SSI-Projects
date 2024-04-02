@@ -43,7 +43,6 @@ class Client:
     
     def handle_responde(self, msg):
         if msg != b"": 
-            print("---------------------------------------------------")
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
         # print error cases to sderr
@@ -62,31 +61,35 @@ class Client:
             finalizar ligação) """
         self.msg_cnt += 1
 
-        if sys.argv[3] == "help":
+        message = ""
 
-            message = 'help'
+        if sys.argv[3] == "help":
+            if len(sys.argv) == 4:
+                message = 'help'
         
         elif sys.argv[3] == "askqueue":
-            
-            message = 'askqueue'
+            if len(sys.argv) == 4:
+                message = 'askqueue'
     
         elif sys.argv[3] == "send":
-            
-            print("Enter message body: ")
-            message_body = input()
 
-            message_size = len(message_body) + len(sys.argv[4:])
+            if len(sys.argv) >= 6:
+                print("Enter message body: ")
+                message_body = input()
 
-            if message_size > max_msg_size:
-                print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
-            else:
+                message_size = len(message_body) + len(sys.argv[4:])
+
+                if message_size > max_msg_size:
+                    print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
+                else:
+                
+                    message = f"{' '.join(sys.argv[3:])} | {message_body}"
             
-                message = f"{' '.join(sys.argv[3:])} | {message_body}"
-        
         elif sys.argv[3] == "getmsg":
             
-            msg_number = sys.argv[4]
-            message = f"getmsg {msg_number}"
+            if len(sys.argv) == 5:
+                msg_number = sys.argv[4]
+                message = f"getmsg {msg_number}"
 
         return message
 
@@ -257,19 +260,31 @@ async def tcp_echo_client():
     msg = client.process()
 
     print(msg)
+    if msg == "":
+        sys.stderr.write("MSG RELAY SERVICE: command error!\n")
+        print("""
+        • send <UID> <SUBJECT> 
+        • askqueue 
+        • getmsg <NUM>
+        • help
+        """
+        )
+        writer.close()
 
-    await client.handshake(writer, reader)
+    else:
 
-    enc_msg = client.start_sending_process(msg)
+        await client.handshake(writer, reader)
 
-    writer.write(enc_msg)
-    msg = await reader.read(max_msg_size)
+        enc_msg = client.start_sending_process(msg)
 
-    client.handle_responde(msg)
+        writer.write(enc_msg)
+        msg = await reader.read(max_msg_size)
 
-    writer.write(b'\n')
-    print('\nSocket closed!')
-    writer.close()
+        client.handle_responde(msg)
+
+        writer.write(b'\n')
+        print('\nSocket closed!')
+        writer.close()
 
 
 def run_client():
