@@ -43,7 +43,7 @@ class Client:
         return private_key
     
     def handle_responde(self, msg):
-        print(msg)
+        # print(msg)
         if msg != b"": 
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
@@ -63,21 +63,29 @@ class Client:
             finalizar ligação) """
         self.msg_cnt += 1
         status = 0
-
+        
         message = ""
+        i = 0
+        if sys.argv[1] == "-user":
+            i = 3
+        else:
+            i = 1
 
-        if sys.argv[3] == "help":
+
+        # 3 = i
+        # 4 = i + 1
+        if sys.argv[i] == "help":
             message = help_command()
             status = 1
         
-        elif sys.argv[3] == "askqueue":
+        elif sys.argv[i] == "askqueue":
             
             message = askqueue_command()
     
-        elif sys.argv[3] == "send":
-            send_header_handdler(sys.argv[4], sys.argv[5])
+        elif sys.argv[i] == "send":
+            send_header_handdler(sys.argv[i+1], sys.argv[i+2])
 
-            if len(sys.argv) >= 6:
+            if len(sys.argv) >= i+3:
                 print("Enter message body: ")
                 message_body = input()
 
@@ -88,9 +96,9 @@ class Client:
                     # print(message)
                     # message = f"{' '.join(sys.argv[3:])} | {message_body}"
         
-        elif sys.argv[3] == "getmsg":
+        elif sys.argv[i] == "getmsg":
             
-            msg_number = sys.argv[4]
+            msg_number = sys.argv[i+1]
             message = getmsg_command(msg_number)
 
         else:
@@ -234,6 +242,10 @@ async def tcp_echo_client():
         msg = await reader.read(max_msg_size)
 
         client.handle_responde(msg)
+
+        writer.write(b'\n')
+        print('\nSocket closed!')
+        writer.close()
     else:
         print(msg)
 
@@ -249,19 +261,28 @@ def run_client():
 def check_user_data():
     global userdata
 
-    if len(sys.argv) < 4 or sys.argv[1] != "-user":
-        raise ValueError ("Usage: msg_client.py -user <FNAME> args")
-    if not os.path.isfile(sys.argv[2]):
-        raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
+    if sys.argv[1] == "-user":
+        if not os.path.isfile(sys.argv[2]):
+            raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
+        else:
+            userdata = sys.argv[2]
     else:
-        userdata = sys.argv[2]
+        userdata = "userdata.p12"
+
+
+    #if len(sys.argv) < 4 or sys.argv[1] != "-user":
+    #   #raise ValueError ("Usage: msg_client.py -user <FNAME> args")
+    #if not os.path.isfile(sys.argv[2]):
+    #    raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
+    #else:
+    #    userdata = sys.argv[2]
 
 
 if __name__ == "__main__":
     try:
         check_user_data()
         run_client()
-    except ValueError as e:
-        print(e)
+    #except ValueError as e:
+        #print(e)
     except FileNotFoundError as e:
         print(e)

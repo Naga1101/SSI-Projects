@@ -71,7 +71,7 @@ def handle_askqueue_command(message_queue, sender, session_file):
 def handle_getmsg_command(message_queue, sender, session_file, num):
     print("GETMSG Command received")
 
-    msg_number = num - 1  # fix ao index
+    msg_number = int(num)- 1  # fix ao index
 
     uid_queue = message_queue[sender]
 

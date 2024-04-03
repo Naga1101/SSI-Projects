@@ -57,7 +57,7 @@ def cert_validsubject(cert, attrs=[]):
     """verifica atributos do campo 'subject'. 'attrs'
     é uma lista de pares '(attr,value)' que condiciona
     os valores de 'attr' a 'value'."""
-    print(cert.subject)
+    #print(cert.subject)
     for attr in attrs:
         if cert.subject.get_attributes_for_oid(attr[0])[0].value != attr[1]:
             raise x509.verification.VerificationError(
