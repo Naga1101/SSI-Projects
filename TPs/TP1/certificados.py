@@ -77,7 +77,7 @@ def cert_validexts(cert, policy=[]):
             )
 
 
-def valida_cert(cert, subject):
+def valida_cert(cert, name):
     return True # comentar isto
     try:
         # print(cert)
@@ -87,7 +87,7 @@ def valida_cert(cert, subject):
         # verificar período de validade...
         cert_validtime(cert)
         # verificar identidade... (e.g.)
-        cert_validsubject(cert, [(x509.NameOID.PSEUDONYM, subject)])
+        cert_validsubject(cert, [(x509.NameOID.PSEUDONYM, name)])
         # verificar aplicabilidade... (e.g.)
         # cert_validexts(
         #     cert,

@@ -1,4 +1,5 @@
 import bson
+from encrypt_decypt_handler import *
 
 help_text = """
     • send <UID> <SUBJECT> 
@@ -12,6 +13,11 @@ send_format = {
     "uid": "",
     "subject": "",
     "body": ""
+}
+
+get_target_info = {
+    "tipo": 0,
+    "target": ""
 }
 
 askqueue_format = {
@@ -39,10 +45,34 @@ def send_header_handdler(uid, subject):
 def send_add_body(body):
     send_format["body"] = body
 
+
+def get_send_message(aes_key, private_key):
+    # primeiro da encode a cada elemento
+    for key in ["uid", "subject", "body"]:
+            send_format[key] = encode_client_message(send_format[key].encode(), aes_key)
+            print("send_format[key]", send_format[key])
+
+    # assina cada elemento da mensagem
+    for key in ["uid", "subject", "body"]:
+        send_format[key] = sign_message(send_format[key], private_key)
+        print("send_format[key]", send_format[key])
+
     bson_send_data = bson.dumps(send_format)
-    # print(bson_send_data)
-    # print('\n', bson.loads(bson_send_data))  # resultado {'tipo': 1, 'send': 'send', 'uid': '1', 'subject': 'macaco', 'body': 'teste'}
     return bson_send_data
+
+def get_send_message2():
+    bson_send_data = bson.dumps(send_format)
+    return bson_send_data
+
+def set_target(target):
+    get_target_info["target"] = target
+
+def get_target_name():
+    return get_target_info["target"]
+
+def get_target():
+    return bson.dumps(get_target_info)
+
 
 def askqueue_command():
     return bson.dumps(askqueue_format)

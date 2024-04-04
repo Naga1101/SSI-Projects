@@ -23,6 +23,8 @@ max_send_msg_size = 1000
 p12_file = "MSG_CLI1.p12"
 userdata = None
 
+error_messages = [b"MSG RELAY SERVICE: unknown message!", b"MSG RELAY SERVICE: uid not found!"]
+
 class Client:
     """ Classe que implementa a funcionalidade de um CLIENTE. """
 
@@ -42,20 +44,97 @@ class Client:
 
         return private_key
     
-    def handle_responde(self, msg):
+    def handle_responde(self, msg, type):
         # print(msg)
         if msg != b"": 
             msg, _ = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
+        
+        # Check for an error message
+        if msg in error_messages:
+            print(msg.decode())
+            return -1
 
-        # print error cases to sderr
-        message = msg.decode()
-        if message.startswith("MSG RELAY SERVICE: "):
-            sys.stderr.write("\n" + message + "\n")
+        if type == "getmsg":
+            
+            # get the User private key
+            private_key = get_private_key(userdata)
+
+            # unpair the received data
+            msg_aesKey_pair, cert = unpair(msg)
+            bson_message, aes_key = unpair(msg_aesKey_pair)
+
+            # get the peer public key
+            certificate = cert_loadObject(cert)
+            peer_public_key = certificate.public_key()
+
+            # decrypt the aes key
+            AESKey = decrypt_rsa(aes_key, get_private_key(userdata))
+            algorithm = algorithms.AES(AESKey)
+
+            # load the bson message 
+            message_data = bson.loads(bson_message)
+
+            subject = message_data["subject"]
+            body = message_data["body"]
+
+            # unpair sigatures from the content
+            signed_subj, subj = unpair(subject)
+            signed_body, message = unpair(body)
+
+            plainSubject = decode_client_message(subj, algorithm)
+            plainBody = decode_client_message(message, algorithm)
+
+            print(f"Subject: {plainSubject}\n")
+            print(f"Body: {plainBody}")
+
+
+        elif type == "askqueue":
+            
+            # check for empty inbox
+            if msg == b'error':
+                print("Inbox is empty")
+                return 1
+
+            # get the user private keya
+            private_key = get_private_key(userdata)
+
+            # unpair the received data
+            msg_aesKey_pair, cert = unpair(msg)
+            bson_message, aes_key = unpair(msg_aesKey_pair)
+
+            # get the peer public_key
+            certificate = cert_loadObject(cert)
+            peer_public_key = certificate.public_key()
+
+            # decrypt the aes key
+            AESKey = decrypt_rsa(aes_key, get_private_key(userdata))
+            algorithm = algorithms.AES(AESKey)
+
+            # load the bson message
+            message_data = bson.loads(bson_message)
+
+            print("<NUM>:<SENDER>:<TIME>:<SUBJECT>")
+            if "messages" in message_data:
+                for message in message_data["messages"]:
+                    number = message["number"]
+                    sender = message["sender"]
+                    time = message["time"]
+                    subject = message["subject"]
+
+                    signature, message = unpair(subject)
+                    plainText = decode_client_message(message, algorithm)
+
+                    print(f"{number}:{sender}:{time}:{plainText.decode()}\n")
         else:
+            #normal message received
+            message = msg.decode()
             print("\n" + message)
 
     def start_sending_process(self, msg):
         return process_send_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)
+    
+    def start_receiving_process(self, msg):
+        return process_received_message(msg, self.shared_DHKey, self.algorythm_AES, userdata)   
 
     def process(self):
         """ Processa uma mensagem (`bytestring`) enviada pelo SERVIDOR.
@@ -63,6 +142,7 @@ class Client:
             finalizar ligação) """
         self.msg_cnt += 1
         status = 0
+        msg_type = None
         
         message = ""
         i = 0
@@ -75,15 +155,21 @@ class Client:
         # 3 = i
         # 4 = i + 1
         if sys.argv[i] == "help":
+            msg_type = "help"
             message = help_command()
             status = 1
         
         elif sys.argv[i] == "askqueue":
             
             message = askqueue_command()
-    
+            msg_type = "askqueue"
+
         elif sys.argv[i] == "send":
-            send_header_handdler(sys.argv[i+1], sys.argv[i+2])
+            set_target(sys.argv[i+1])
+            
+            subject = ' '.join(sys.argv[i+2:])
+
+            send_header_handdler(sys.argv[i+1], subject)
 
             if len(sys.argv) >= i+3:
                 print("Enter message body: ")
@@ -93,19 +179,54 @@ class Client:
                     print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
                 else:
                     message = send_add_body(message_body)
-                    # print(message)
-                    # message = f"{' '.join(sys.argv[3:])} | {message_body}"
+                    msg_type = "send"
+                    status = 1
         
         elif sys.argv[i] == "getmsg":
             
             msg_number = sys.argv[i+1]
             message = getmsg_command(msg_number)
+            msg_type = "getmsg"
 
         else:
             message = invalid_commad()
-            status = 1
+            status = 2
 
-        return message, status
+        return message, status, msg_type
+    
+    def handle_target_info(self,cert):
+
+        # validar o certificado recebido
+        certificado = cert_loadObject(cert)
+        valid = valida_cert(certificado, get_target_name())
+
+        if valid is False:
+            return -1
+        
+        #obtem a public key do destinatraio da mensagem
+        peer_publickey = certificado.public_key()
+
+        # gera chave para aes
+        key = os.urandom(32)
+        algorithm = algorithms.AES(key)
+
+        # obtem o msg bson com os conteudos cifrados e assinados
+        message = get_send_message(algorithm, get_private_key(userdata))
+    
+        #cifrar a chave com rsa
+        aes_key = encrypt_rsa(key, peer_publickey)
+
+
+        certificate = get_certificado(userdata)
+        certificate_bytes = certificate.public_bytes(encoding=serialization.Encoding.PEM)
+
+        # pair assinaturas, aes key
+        key_and_bson = mkpair(message, aes_key)
+        # acerscentar o certificado 
+        final_message = mkpair(key_and_bson, certificate_bytes)
+
+        return final_message
+    
 
     async def handshake(self, writer, reader):
 
@@ -226,13 +347,15 @@ class Client:
 # obs: não deverá ser necessário alterar o que se segue
 #
 
+
 async def tcp_echo_client():
     reader, writer = await asyncio.open_connection('127.0.0.1', conn_port)
     addr = writer.get_extra_info('peername')
     client = Client(addr)
 
-    msg, status = client.process()
-    # print(msg, status)
+    msg, status, msg_type = client.process()
+
+    # status for normal messages
     if status == 0:
         await client.handshake(writer, reader)  
 
@@ -241,11 +364,49 @@ async def tcp_echo_client():
         writer.write(enc_msg)
         msg = await reader.read(max_msg_size)
 
-        client.handle_responde(msg)
+        client.handle_responde(msg, msg_type)
+
+        writer.write(b'\n')
+        print('\nSocket closeddd!')
+        writer.close()
+
+    # send message 
+    elif status == 1:
+        await client.handshake(writer, reader)  
+
+        #obter o destino da mensagem
+        get_target_msg = get_target()
+
+        # obter a mensagem para enviar
+        target_msg = client.start_sending_process(get_target_msg)
+
+        #enviar o target e esperar pelo certificado dele
+        writer.write(target_msg)
+        peer_cert = await reader.read(max_msg_size)
+
+        # verificar se a mensagem devolvida pelo servidor foi de erro
+        if peer_cert in error_messages:
+            print(peer_cert.decode())
+            return -1
+
+
+        peer_cert_dec, _= client.start_receiving_process(peer_cert)
+
+        # receber a mensagem com os conteudos encoded
+        enc_peer_msg = client.handle_target_info(peer_cert_dec)
+
+        peer_msg = client.start_sending_process(enc_peer_msg)
+
+        writer.write(peer_msg)
+        msg = await reader.read(max_msg_size)
+
+        client.handle_responde(msg, msg_type)
 
         writer.write(b'\n')
         print('\nSocket closed!')
         writer.close()
+
+    
     else:
         print(msg)
 

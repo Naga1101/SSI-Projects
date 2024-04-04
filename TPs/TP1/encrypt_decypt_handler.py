@@ -12,6 +12,30 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.exceptions import InvalidSignature
 from certificados import *
 
+def encrypt_rsa(msg, key):
+    ciphertext = key.encrypt(
+        msg,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    #print("\n\n\n\n\n\n\n\n\n CIPHERTEXTLEN:", len(ciphertext), "\n\n\n\n\n\n\n\n\n")
+    return ciphertext
+
+def decrypt_rsa(msg, key):
+    #print("\n\n\n\n\n\n\n\n\n CHAVE LEN:", len(key), "\n\n\n\n\n\n\n\n\n")
+    plaintext = key.decrypt(
+        msg,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        )
+    )
+    return plaintext
+
 def decode_message(txt, key, algorythm):
     nonce = txt[:16]
     signature = txt[16:48]
@@ -49,6 +73,7 @@ def encode_message(txt, key, algorythm):
     return final_message
 
 def process_send_message(txt, key, algorithm, source):
+
     encoded_message = encode_message(txt, key, algorithm)
 
     private_key, cert, _ = get_userdata(source)
@@ -98,3 +123,81 @@ def process_received_message(txt, key, algorithm, source):
         return "MSG RELAY SERVICE: verification error!", None
 
 
+def enc_send_message(txt, key, algorithm, source, peer_publickey, peer_certificate):
+
+    encoded_message = encode_message(txt, key, algorithm)
+
+    private_key, cert, _ = get_userdata(source)
+
+    certificate = cert.public_bytes(encoding=serialization.Encoding.PEM)
+
+    signature = private_key.sign(
+        encoded_message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+
+    sign_message = mkpair(signature, encoded_message)
+    final_message = mkpair (sign_message, certificate)
+
+    return final_message
+
+
+def sign_message(message, private_key):
+    signature = private_key.sign(
+        message,
+        padding.PSS(
+            mgf=padding.MGF1(hashes.SHA256()),
+            salt_length=padding.PSS.MAX_LENGTH
+        ),
+        hashes.SHA256()
+    )
+    message_pair = mkpair(signature, message)
+
+    return message_pair
+
+
+def verify_signature(message, signature, public_key):
+    try:
+        public_key.verify(
+            signature,
+            message,
+            padding.PSS(
+                mgf=padding.MGF1(hashes.SHA256()),
+                salt_length=padding.PSS.MAX_LENGTH
+            ),
+            hashes.SHA256()
+        )
+        print("The signature is valid.")
+        return True
+    except:
+        print("The signature is invalid.")
+        return False
+
+def encode_client_message(txt, algorithm):
+    nonce = os.urandom(12)
+
+    cipher = Cipher(algorithm, modes.GCM(nonce))
+    encryptor = cipher.encryptor()
+    ciphertext = encryptor.update(txt) + encryptor.finalize()
+
+    tag = encryptor.tag
+
+    final_message = nonce + ciphertext + tag
+
+    return final_message
+
+def decode_client_message(txt, algorithm):
+    nonce = txt[:12]
+    tag = txt[-16:]
+    ciphertext = txt[12:-16]
+
+    cipher = Cipher(algorithm, modes.GCM(nonce, tag))
+    decryptor = cipher.decryptor()
+
+    decrypted_text = decryptor.update(ciphertext) + decryptor.finalize()
+
+    return decrypted_text

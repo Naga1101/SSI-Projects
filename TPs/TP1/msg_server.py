@@ -25,7 +25,7 @@ max_send_msg_size = 1000
 
 session_file = generate_log_file()
 p12_file = "MSG_SERVER.p12"
-uids = {0: "MSG_SERVER"}
+uids = {}
 message_queue = {}
 
 class ServerWorker(object):
@@ -49,11 +49,11 @@ class ServerWorker(object):
     
 
     def valid_message(self, id):
-        if id in [1, 2, 3]:
+        if id in [0, 1, 2, 3]:
             return 1
         return -1
 
-    def process(self, msg):
+    async def process(self, msg, reader, writer):
         """ Processa uma mensagem (`bytestring`) enviada pelo CLIENTE.
             Retorna a mensagem a transmitir como resposta (`None` para
             finalizar ligação) """
@@ -85,15 +85,19 @@ class ServerWorker(object):
 
                 print("user info request received")
                 response = handle_user_command(txt, sender, session_file)"""
+            if id_command == 0:
+                await handle_get_target_data_command(uids, message_queue, sender, session_file, dict['target'], reader, writer, self.shared_DHKey, self.algorythm_AES)
+                return None
 
-            if id_command == 1:
-                response = handle_send_command(message_queue, sender, session_file, dict['uid'], dict['subject'], dict['body'])
+            elif id_command == 1:
+                #response = handle_send_command(message_queue, sender, session_file, dict['uid'], dict['subject'], dict['body'])
+                print("NADA")
 
             elif id_command == 2:
                 response = handle_askqueue_command(message_queue, sender, session_file)
 
             elif id_command == 3:
-                response = handle_getmsg_command(message_queue, sender, session_file, dict['num'])
+                response = handle_getmsg_command_bson(message_queue, sender, session_file, dict['num'])
             
             return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
 
@@ -179,7 +183,7 @@ class ServerWorker(object):
         if valid: 
             print("Certificado validado")
             # var sender para log
-            sender = uid_gen(cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value)
+            sender = uid_gen(cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value, cert_client_bytes)
         else:
             print("Validação do certificado falhada")
             return -1
@@ -217,10 +221,9 @@ class ServerWorker(object):
         print("---------------------------------------------------")
 
 
-def uid_gen(PSEUDONYM):
-    last_uid = list(uids)[-1]
-    next_uid = int(last_uid) + 1
-    uids[next_uid] = PSEUDONYM
+def uid_gen(PSEUDONYM, client_certificate):
+    if PSEUDONYM not in uids:
+        uids[PSEUDONYM] = client_certificate
     if PSEUDONYM not in message_queue:
         message_queue[PSEUDONYM] = []
     return PSEUDONYM
@@ -248,7 +251,7 @@ async def handle_echo(reader, writer):
     while True:
         if not data: continue
         if data[:1] == b'\n': break
-        data = srvwrk.process(data)
+        data = await srvwrk.process(data, reader, writer)
         if not data: break
         # encriptar a data
         writer.write(data)
