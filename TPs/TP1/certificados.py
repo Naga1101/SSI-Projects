@@ -1,11 +1,17 @@
-import sys
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import dh
-from cryptography.hazmat.primitives.kdf.hkdf import HKDF
+from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
-from cryptography.hazmat.primitives.ciphers.aead import AESGCM
-from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography import x509
+from cryptography.x509.oid import NameOID
+from cryptography.hazmat.primitives.serialization.pkcs12 import serialize_key_and_certificates
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.serialization.pkcs12 import load_key_and_certificates
+from datetime import datetime, timedelta
+from cryptography.x509 import load_pem_x509_certificate
+from cryptography.hazmat.primitives.serialization import NoEncryption
+from cryptography.hazmat.backends import default_backend
+
 
 from cryptography import x509
 import datetime
@@ -77,13 +83,16 @@ def cert_validexts(cert, policy=[]):
             )
 
 
-def valida_cert(cert, name):
-    return True # comentar isto
+def valida_cert(cert, name, tipo_cert):
+    #return True # comentar isto
     try:
         # print(cert)
-        ca_cert = cert_load("MSG_CA.crt")
+        if tipo_cert == 1: 
+            ca_cert = cert_load("MSG_CA.crt")
+        else: 
+            _, ca_cert, _ = get_userdata("projCA/MSG_CA.p12")
         #print("good1")
-        #cert.verify_directly_issued_by(ca_cert)
+        cert.verify_directly_issued_by(ca_cert)
         #print("good2")
         # verificar período de validade...
         cert_validtime(cert)

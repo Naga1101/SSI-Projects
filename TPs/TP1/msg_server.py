@@ -24,7 +24,7 @@ max_send_msg_size = 1000
 # Variaveis
 
 session_file = generate_log_file()
-p12_file = "MSG_SERVER.p12"
+p12_file = "projCA/MSG_SERVER.p12"
 uids = {}
 message_queue = {}
 
@@ -179,7 +179,7 @@ class ServerWorker(object):
         
         name = cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value
 
-        valid = valida_cert(cert_client, name)
+        valid = valida_cert(cert_client, name, 0)
         if valid: 
             print("Certificado validado")
             # var sender para log

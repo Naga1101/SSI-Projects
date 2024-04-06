@@ -293,7 +293,7 @@ class Client:
         print("Pares descompactados")
         print("Validar certificado do server")
 
-        valid = valida_cert(cert_server, 'MSG_SERVER')
+        valid = valida_cert(cert_server, 'MSG_SERVER', 0)
         if not valid:
             print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
 
