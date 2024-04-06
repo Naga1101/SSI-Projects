@@ -34,6 +34,7 @@ class Client:
         self.sckt = sckt
         self.msg_cnt = 0
         self.msg_cnt = 0
+        self.shared_key = None
         self.shared_DHKey = None
         self.cli_privRSA_KEY = self.handleKey()  # chave dos p12
         self.cert = None
@@ -166,7 +167,7 @@ class Client:
         if sys.argv[i] == "help":
             msg_type = "help"
             message = help_command()
-            status = 1
+            status = 2
         
         elif sys.argv[i] == "askqueue":
             
@@ -184,8 +185,11 @@ class Client:
                 print("Enter message body: ")
                 message_body = input()
 
-                if len(message_body) > max_msg_size:
-                    print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {message - max_msg_size}")
+                if len(message_body) > max_send_msg_size:
+                    message = "Error: message max lenght exceeded, max is 1000"
+                    print(f"Message reached 1000 bytes limit, unable to send, limit exceeded by {len(message_body) - max_send_msg_size}")
+                    status = 2
+
                 else:
                     message = send_add_body(message_body)
                     msg_type = "send"
@@ -415,7 +419,6 @@ async def tcp_echo_client():
         writer.write(b'\n')
         print('\nSocket closed!')
         writer.close()
-
     
     else:
         print(msg)
