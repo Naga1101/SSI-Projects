@@ -153,8 +153,6 @@ class ServerWorker(object):
         certificate_server = get_certificado(p12_file)
         cert_server = certificate_server.public_bytes(encoding=serialization.Encoding.PEM)
 
-        # print("certificado do server: ", cert_server)
-
         # certificado do server e as chaves publicas dh do cliente e do server
         reply = mkpair(pair_pubKeyServ_signKeys, cert_server)
 

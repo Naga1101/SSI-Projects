@@ -55,9 +55,6 @@ class Client:
             return -1
 
         if type == "getmsg":
-            
-            # get the User private key
-            private_key = get_private_key(userdata)
 
             # unpair the received data
             msg_aesKey_pair, cert = unpair(msg)
@@ -67,7 +64,7 @@ class Client:
             certificate = cert_loadObject(cert)
             peer_public_key = certificate.public_key()
 
-            # decrypt the aes key
+            # decrypt the aes key with the user private key
             AESKey = decrypt_rsa(aes_key, get_private_key(userdata))
             algorithm = algorithms.AES(AESKey)
 
@@ -81,11 +78,18 @@ class Client:
             signed_subj, subj = unpair(subject)
             signed_body, message = unpair(body)
 
-            plainSubject = decode_client_message(subj, algorithm)
-            plainBody = decode_client_message(message, algorithm)
+            valid_subj = verify_signature(subj, signed_subj, peer_public_key)
+            valid_body = verify_signature(message, signed_body, peer_public_key)
 
-            print(f"Subject: {plainSubject}\n")
-            print(f"Body: {plainBody}")
+            if valid_subj is False or valid_body is False:
+                print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
+            
+            else:
+                plainSubject = decode_client_message(subj, algorithm)
+                plainBody = decode_client_message(message, algorithm)
+
+                print(f"Subject: {plainSubject.decode()}\n")
+                print(f"Body: {plainBody.decode()}")
 
 
         elif type == "askqueue":
@@ -95,9 +99,6 @@ class Client:
                 print("Inbox is empty")
                 return 1
 
-            # get the user private keya
-            private_key = get_private_key(userdata)
-
             # unpair the received data
             msg_aesKey_pair, cert = unpair(msg)
             bson_message, aes_key = unpair(msg_aesKey_pair)
@@ -106,7 +107,7 @@ class Client:
             certificate = cert_loadObject(cert)
             peer_public_key = certificate.public_key()
 
-            # decrypt the aes key
+            # decrypt the aes key with the user private key
             AESKey = decrypt_rsa(aes_key, get_private_key(userdata))
             algorithm = algorithms.AES(AESKey)
 
@@ -122,9 +123,16 @@ class Client:
                     subject = message["subject"]
 
                     signature, message = unpair(subject)
-                    plainText = decode_client_message(message, algorithm)
 
-                    print(f"{number}:{sender}:{time}:{plainText.decode()}\n")
+                    valid = verify_signature(message, signature, peer_public_key)
+
+                    if valid is False:
+                        print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
+
+                    else:
+                        plainText = decode_client_message(message, algorithm)
+
+                        print(f"{number}:{sender}:{time}:{plainText.decode()}\n")
         else:
             #normal message received
             message = msg.decode()
@@ -201,6 +209,7 @@ class Client:
         valid = valida_cert(certificado, get_target_name())
 
         if valid is False:
+            print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
             return -1
         
         #obtem a public key do destinatraio da mensagem
@@ -280,8 +289,8 @@ class Client:
         print("Validar certificado do server")
 
         valid = valida_cert(cert_server, 'MSG_SERVER')
-        #if not valid:
-        #    sys.stderr("MSG RELAY SERVICE: verification error!")
+        if not valid:
+            print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
 
         print("Validar chaves assinadas do server")
 
@@ -422,6 +431,16 @@ def run_client():
 def check_user_data():
     global userdata
 
+    if len(sys.argv) < 2:
+        print("MSG RELAY SERVICE: verification error!"
+                   """
+    • send <UID> <SUBJECT> 
+    • askqueue 
+    • getmsg <NUM>
+    • help
+    """, file=sys.stderr)
+        sys.exit(1)
+
     if sys.argv[1] == "-user":
         if not os.path.isfile(sys.argv[2]):
             raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
@@ -430,13 +449,6 @@ def check_user_data():
     else:
         userdata = "userdata.p12"
 
-
-    #if len(sys.argv) < 4 or sys.argv[1] != "-user":
-    #   #raise ValueError ("Usage: msg_client.py -user <FNAME> args")
-    #if not os.path.isfile(sys.argv[2]):
-    #    raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
-    #else:
-    #    userdata = sys.argv[2]
 
 
 if __name__ == "__main__":
