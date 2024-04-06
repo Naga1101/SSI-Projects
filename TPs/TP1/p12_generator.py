@@ -42,6 +42,11 @@ def gerar_parametros_p12(nome):
         backend=default_backend()
     )
 
+    with open("MSG_CA.crt", "rb") as ca_file:
+        ca_cert_bytes = ca_file.read()
+
+    ca_cert = load_pem_x509_certificate(ca_cert_bytes, default_backend())
+    
     subject = issuer = x509.Name([
         x509.NameAttribute(NameOID.COUNTRY_NAME, u"PT"),
         x509.NameAttribute(NameOID.STATE_OR_PROVINCE_NAME, u"Minho"),
@@ -55,7 +60,7 @@ def gerar_parametros_p12(nome):
     user_cert = x509.CertificateBuilder().subject_name(
         subject
     ).issuer_name(
-        issuer
+        ca_cert.subject
     ).public_key(
         private_key.public_key()
     ).serial_number(
@@ -67,11 +72,6 @@ def gerar_parametros_p12(nome):
     ).sign(
         private_key, hashes.SHA256(), default_backend()
     )
-
-    with open("MSG_CA.crt", "rb") as ca_file:
-        ca_cert_bytes = ca_file.read()
-
-    ca_cert = load_pem_x509_certificate(ca_cert_bytes, default_backend())
 
     generate_p12(private_key, user_cert, ca_cert, nome, nome + ".p12")
 

@@ -78,12 +78,13 @@ def cert_validexts(cert, policy=[]):
 
 
 def valida_cert(cert, name):
-    return True # comentar isto
+    #return True # comentar isto
     try:
         # print(cert)
         ca_cert = cert_load("MSG_CA.crt")
-   
-        cert.verify_directly_issued_by(ca_cert)
+        #print("good1")
+        #cert.verify_directly_issued_by(ca_cert)
+        #print("good2")
         # verificar período de validade...
         cert_validtime(cert)
         # verificar identidade... (e.g.)

@@ -34,7 +34,7 @@ class Client:
         self.sckt = sckt
         self.msg_cnt = 0
         self.msg_cnt = 0
-        self.shared_key = None
+        self.shared_DHKey = None
         self.cli_privRSA_KEY = self.handleKey()  # chave dos p12
         self.cert = None
         self.algorythm_AES = None

@@ -36,7 +36,7 @@ class ServerWorker(object):
         self.id = cnt
         self.addr = addr
         self.msg_cnt = 0
-        self.shared_key = None
+        self.shared_DHKey = None
         self.srv_privRSA_KEY = self.handleKey()
         self.cert = None
         self.algorythm_AES = None
@@ -176,8 +176,10 @@ class ServerWorker(object):
         print("Pares de chaves descompactadors")
 
         print("Iniciar Validação do certificado do cliente")
+        
+        name = cert_client.subject.get_attributes_for_oid(x509.NameOID.PSEUDONYM)[0].value
 
-        valid = valida_cert(cert_client, "MSG_CLI1")
+        valid = valida_cert(cert_client, name)
         if valid: 
             print("Certificado validado")
             # var sender para log
