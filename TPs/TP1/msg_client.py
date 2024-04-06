@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from messages_dict import *
 from certificados import *
+from p12_generator import *
 
 conn_port = 8443
 max_msg_size = 9999
@@ -430,14 +431,16 @@ def run_client():
 
 def check_user_data():
     global userdata
+    action = 0
 
     if len(sys.argv) < 2:
         print("MSG RELAY SERVICE: verification error!"
                    """
-    • send <UID> <SUBJECT> 
-    • askqueue 
-    • getmsg <NUM>
-    • help
+    • send <UID> <SUBJECT> : Send a message to another person, pseudonym needed
+    • askqueue : Get a list of queued mesages from the user
+    • getmsg <NUM> : Get the contents of a specific message from the user
+    • -gen <fname> : Generate a new .p12 file with the requested name 
+    • help : Shows all the command possible
     """, file=sys.stderr)
         sys.exit(1)
 
@@ -446,15 +449,25 @@ def check_user_data():
             raise FileNotFoundError(f"Userdata {sys.argv[2]} not found")
         else:
             userdata = sys.argv[2]
+    elif sys.argv[1] == "help":
+        help = help_command()
+        print(help)
+        action = 1
+    elif sys.argv[1] == "-gen":
+        gerar_parametros_p12(sys.argv[2])
+        print("Gerado o ficheiro ", sys.argv[2] + ".p12")
+        action = 1
     else:
         userdata = "userdata.p12"
+    
+    return action
 
 
 
 if __name__ == "__main__":
     try:
-        check_user_data()
-        run_client()
+        action = check_user_data()
+        if action == 0: run_client()
     #except ValueError as e:
         #print(e)
     except FileNotFoundError as e:

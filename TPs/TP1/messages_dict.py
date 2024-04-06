@@ -2,10 +2,11 @@ import bson
 from encrypt_decypt_handler import *
 
 help_text = """
-    • send <UID> <SUBJECT> 
-    • askqueue 
-    • getmsg <NUM>
-    • help
+    • send <UID> <SUBJECT> : Send a message to another person, pseudonym needed
+    • askqueue : Get a list of queued mesages from the user
+    • getmsg <NUM> : Get the contents of a specific message from the user
+    • -gen <fname> : Generate a new .p12 file with the requested name 
+    • help : Shows all the command possible
     """
 
 send_format = {
