@@ -15,7 +15,7 @@ Para prevenir um servidor curioso, o conteúdo das mensagens é encriptado usand
 ## Handshake inicial
 
 Este handshake inicial é utilizado para a troca de chaves entre cliente-servidor para garantir a segurança da comunicação entre os mesmos, neste handshake o cliente começa por realizar a geração dos parâmetros para o diffie-hellman e envia os mesmos para o servidor, depois gera a sua chave publica enviando-a também para o servidor. 
-O servidor ao receber estes dados faz um "par" com a sua chave publica e com a enviado pelo cliente assinando-as, este par assinado é então enviado em conjunto com o seu certificado para o cliente. 
+O servidor ao receber estes dados faz um "par" com a sua chave publica e com a enviada pelo cliente assinando-as, este par assinado é então enviado em conjunto com o seu certificado para o cliente. 
 O cliente irá então válidar os dados recebidos e efetuar o mesmo processo enviando o par de chaves assinado por si para o servidor o validar. No final se todas as verificações forem feitas com sucesso ambos calculam a chave partilhada.
 
 ![imagem](https://github.com/uminho-lei-ssi/2324-G31/assets/116183745/36200c65-dba4-444e-9c3c-146da25e00a6)
