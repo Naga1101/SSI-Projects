@@ -171,7 +171,7 @@ def verify_signature(message, signature, public_key):
             ),
             hashes.SHA256()
         )
-        print("The signature is valid.")
+        #print("The signature is valid.")
         return True
     except:
         print("The signature is invalid.")

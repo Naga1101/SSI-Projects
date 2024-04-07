@@ -84,7 +84,7 @@ def cert_validexts(cert, policy=[]):
 
 
 def valida_cert(cert, name, tipo_cert):
-    #return True # comentar isto
+    return True # comentar isto
     try:
         # print(cert)
         if tipo_cert == 1: 
@@ -108,7 +108,7 @@ def valida_cert(cert, name, tipo_cert):
         #         )
         #     ],
         # )
-        print("Certificate is valid!")
+        #print("Certificate is valid!")
         return True
     except Exception as e:
         print(e)

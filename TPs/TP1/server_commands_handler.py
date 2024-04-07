@@ -5,6 +5,8 @@ from encrypt_decypt_handler import *
 import asyncio
 import bson
 
+p12_file = "projCA/MSG_SERVER.p12"
+
 send_target_format = {
     "publickey" : "",
     "certificate" : ""
@@ -23,48 +25,20 @@ def get_userdata(p12_fname, session_file):
     (private_key, user_cert, [ca_cert]) = load_key_and_certificates(p12, password)
     return (private_key, user_cert, ca_cert)
 
-"""
-def handle_send_command(message_queue, sender, session_file, uid, subject, body):
-    print("Send command received")
-
-    print(message_queue)
-    i = 2
-    print("Message Queue: ", message_queue)
-
-    if uid not in message_queue:
-        log_invalid_action(session_file, "SENDMSG", sender)
-        return "MSG RELAY SERVICE: unknown uid!".encode()
-
-    timestamp = datetime.now().timestamp()
-
-    print(f"UID: {uid}")
-    print(f"SENDER: {sender}")
-    print(f"TIMESTAMP: {timestamp}")
-    print(f"SUBJECT: {subject}")
-    print(f"MESSAGE: {body}")
-
-
-    message_queue[uid].append((sender, timestamp, subject, body, False))
-    log_action(session_file, "SENDMSG", sender, uid)
-
-    print("Current message queue: ", message_queue)
-
-    return f"Message queued for UID {uid}".encode()"""
-
 def handle_askqueue_command(message_queue, sender, session_file):
-    print("askqueue Command Received")
+    print("ASKQUEUE Command Received")
 
+    # obtem a queue do target
     uid_queue = message_queue.get(sender, [])
-    print(message_queue)
 
-    messages_list = []  # Use a list to accumulate messages
+    messages_list = [] # lista das mensagens a enviar
 
     if not uid_queue :
-        response = "error"
+        response = "Empty"
         return response.encode()
     
     elif all(message[3] is True for message in uid_queue):
-        response = "error"
+        response = "Empty"
         return response.encode()
     else:
         for message_n, message in enumerate(uid_queue, start=1):
@@ -100,40 +74,21 @@ def handle_getmsg_command_bson(message_queue, sender, session_file, num):
 
     msg_number = int(num) - 1  # fix ao index
 
+    # obtem o queue do cliente
     uid_queue = message_queue.get(sender, [])
 
     if msg_number < len(uid_queue):
+        
+        # obtem a mensagem que foi requested
         message = uid_queue[msg_number]
-        print(f"Message: {message}")
 
         # Marcar como lido
         msg_read = (message[0], message[1], message[2], True)
         message_queue[sender][msg_number] = msg_read
 
-        return message[2]
-
-
-        msg_aesKey_pair, certificate = unpair(message[2])
-        bson_message, aes_key = unpair(msg_aesKey_pair)
-
-        message_data = bson.loads(bson_message)
-        subject = message_data['subject']
-        body = message_data['body']
-
-        print("Message marked as read.")
-        
-        message_dict = {
-            "subject": subject,
-            "body": body
-        }
-
-        response_bson = bson.dumps(message_dict)
         log_action(session_file, "GETMSG", sender, msg_number + 1)
 
-        first = mkpair(response_bson, aes_key)
-        second = mkpair(first, certificate)
-
-        return second
+        return message[2]
 
     else:
         print(f"Message number {msg_number + 1} does not exist.")
@@ -148,7 +103,7 @@ def handle_getmsg_command_bson(message_queue, sender, session_file, num):
         return response.encode()
 
 async def handle_get_target_data_command(uids, message_queue, sender, session_file, target, reader, writer, shared_DHKey, algorythm_AES):
-    print("SENDING TARGET DATA")
+    print("SEND command receivied")
 
     # uid nao existente
     if target not in uids:
@@ -159,17 +114,19 @@ async def handle_get_target_data_command(uids, message_queue, sender, session_fi
         print(uids)
     
     # enc the message and send it
-    rp = process_send_message(certificate, shared_DHKey, algorythm_AES, "MSG_SERVER.p12")
+    rp = process_send_message(certificate, shared_DHKey, algorythm_AES, p12_file)
     writer.write(rp)
 
     #wait for the message
     message = await reader.read(99999)
 
-    peer_message, _ = process_received_message(message, shared_DHKey, algorythm_AES, "MSG_SERVER.p12")
+    peer_message, _ = process_received_message(message, shared_DHKey, algorythm_AES, p12_file)
 
     timestamp = datetime.datetime.now().timestamp()
 
     #register the message
     message_queue[target].append((sender, timestamp, peer_message, False))
+
+    log_action(session_file, "SENDMSG", sender, target)
 
     print(message_queue)

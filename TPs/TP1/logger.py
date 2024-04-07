@@ -26,7 +26,7 @@ def log_session_start(session_file):
     with open(session_file, "a+") as f:
         f.write("-----------------BEGIN-SESSION-----------------\n")
         f.write(f"Session start: {datetime.now()}\n\n")
-        f.write(f"<DATETIME> -> <SENDER>\n")
+        #f.write(f"<DATETIME> -> <SENDER>\n")
 
 def log_session_end(session_file):
     session_end = datetime.now()

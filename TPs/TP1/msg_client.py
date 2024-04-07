@@ -96,7 +96,7 @@ class Client:
         elif type == "askqueue":
             
             # check for empty inbox
-            if msg == b'error':
+            if msg == b'Empty':
                 print("Inbox is empty")
                 return 1
 
@@ -160,9 +160,7 @@ class Client:
         else:
             i = 1
 
-
         # 3 = i
-        # 4 = i + 1
         if sys.argv[i] == "help":
             msg_type = "help"
             message = help_command()
@@ -210,7 +208,7 @@ class Client:
 
         # validar o certificado recebido
         certificado = cert_loadObject(cert)
-        valid = valida_cert(certificado, get_target_name())
+        valid = valida_cert(certificado, get_target_name(), 0)
 
         if valid is False:
             print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
@@ -228,7 +226,6 @@ class Client:
     
         #cifrar a chave com rsa
         aes_key = encrypt_rsa(key, peer_publickey)
-
 
         certificate = get_certificado(userdata)
         certificate_bytes = certificate.public_bytes(encoding=serialization.Encoding.PEM)

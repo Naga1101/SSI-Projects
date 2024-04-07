@@ -51,12 +51,12 @@ def get_send_message(aes_key, private_key):
     # primeiro da encode a cada elemento
     for key in ["uid", "subject", "body"]:
             send_format[key] = encode_client_message(send_format[key].encode(), aes_key)
-            print("send_format[key]", send_format[key])
+            #print("send_format[key]", send_format[key])
 
     # assina cada elemento da mensagem
     for key in ["uid", "subject", "body"]:
         send_format[key] = sign_message(send_format[key], private_key)
-        print("send_format[key]", send_format[key])
+        #print("send_format[key]", send_format[key])
 
     bson_send_data = bson.dumps(send_format)
     return bson_send_data

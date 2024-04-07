@@ -59,7 +59,7 @@ class ServerWorker(object):
             finalizar ligação) """
         self.msg_cnt += 1
 
-        msg, sender = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
+        msg, sender = process_received_message(msg, self.shared_DHKey, self.algorythm_AES, p12_file)
 
         dict = bson.loads(msg)
         id_command = dict['tipo'] 
@@ -81,17 +81,13 @@ class ServerWorker(object):
 
             # diferentes tipos de request do client
 
-            """if txt.startswith("-user"):
-
-                print("user info request received")
-                response = handle_user_command(txt, sender, session_file)"""
             if id_command == 0:
                 await handle_get_target_data_command(uids, message_queue, sender, session_file, dict['target'], reader, writer, self.shared_DHKey, self.algorythm_AES)
                 return None
 
             elif id_command == 1:
                 #response = handle_send_command(message_queue, sender, session_file, dict['uid'], dict['subject'], dict['body'])
-                print("NADA")
+                print("1")
 
             elif id_command == 2:
                 response = handle_askqueue_command(message_queue, sender, session_file)
@@ -99,11 +95,11 @@ class ServerWorker(object):
             elif id_command == 3:
                 response = handle_getmsg_command_bson(message_queue, sender, session_file, dict['num'])
             
-            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
+            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, p12_file)
 
         else:
             log_invalid_command(session_file, sender)
-            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, "MSG_SERVER.p12")
+            return process_send_message(response, self.shared_DHKey, self.algorythm_AES, p12_file)
 
     async def handshake(self, writer, reader):
 
@@ -245,7 +241,7 @@ async def handle_echo(reader, writer):
     #setup shared key
     await srvwrk.handshake(writer, reader)   # Ver ordem com o ui gen
 
-    print("Message Queue ", message_queue)
+    #print("Message Queue ", message_queue)
 
     data = await reader.read(max_msg_size)
     while True:
