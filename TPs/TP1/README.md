@@ -43,7 +43,7 @@ Quando o cliente recebe esta mensagem além de validar os dados do servidor, val
 
 No caso de não ter mensagens por ler, é apresentada a mensagem "Your inbox is empty".
 
-### Comando - GETMSG `<X>`
+### Comando - GETMSG `<NUM>`
 
 Este comando pede ao servidor uma mensagem, identificada por número, enviando GETMSG `<X>`, ao receber esta mensagem o servidor vai a queue buscar a mensagem requisitada, e envia a mesma ao cliente, ao receber esta mensagem e verificar que foi enviada pelo servidor, obtem o certificado do SENDER para verificar a assinatura da mensagem, e desencriptar a chave AES que acompanhava a mensagem utilizando a sua chave privada, usa essa mesma chave para obter a mensagem original e faz envia para o stdout.
 
