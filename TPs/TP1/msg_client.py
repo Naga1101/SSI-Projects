@@ -21,7 +21,6 @@ conn_port = 8443
 max_msg_size = 9999
 max_send_msg_size = 1000
 
-p12_file = "MSG_CLI1.p12"
 userdata = None
 
 error_messages = [b"MSG RELAY SERVICE: unknown message!", b"MSG RELAY SERVICE: uid not found!"]
@@ -461,7 +460,7 @@ def check_user_data():
         print("Gerado o ficheiro ", sys.argv[2] + ".p12")
         action = 1
     else:
-        userdata = "userdata.p12"
+        userdata = "projCA/userdata.p12"
     
     return action
 
