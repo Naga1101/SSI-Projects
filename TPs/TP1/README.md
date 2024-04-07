@@ -20,22 +20,22 @@ Durante este processo o servidor também realiza um registo do cliente, usando o
 
 ## Comandos
 
-### Comando - -user `<fname>`
+### -user `<fname>`
 
 Este comando é reconhecido pelo cliente como uma flag, no caso de se chamar a função com a flag -user <fname> o ficheiro .p12 utilizado pelo cliente será o selecionado pelo mesmo, tendo o seu caminho sido fornecido no <fname>.
 
 
-### Comando - -gen `<fname>`
+### -gen `<fname>`
 
 Este comando é utilizado por um cliente, e gera lhe um ficheiro .p12 com uma chave privada, um certificado e com o issuer MSG_CA. Após a criação deste ficheiro o cliente poderá utilizá-lo em junção com o comando -user para executar os comandos que iremos explicar a seguir. Qualquer ficheiro criado será armazenado na pasta projCA.
 
-### Comando - SEND
+### SEND `<destination>` `<subject>` 
 
 Este comando vem em conjunto com o uid do destinatário e o subject, e será depois pedido para inserir o conteudo da mensagem que não deve exceder os 1000 bytes, depois do utilizador fornecer toda a informação, este vai enviar uma mensagem "SEND `<DESTINATION>`" ao servidor, à qual o servidor irá responder com o certificado do destinatário da mensagem, ao receber o certificado, é verificado se o certificado é válido, depois uma chave AES é gerada para criptografar o conteudo da mensagem, após o conteudo ser criptografado com a chave AES, a chave é então criptografada com a chave publica do destinatário obtida no certifico recebido usando o RSA. Por fim mensagem criptografada, a chave AES criptografada, assinatura digital e o certificado do `<SENDER>` são enviadas ao servidor.
 
 Ao receber a mensagem o servidor irá guardar os detalhes na queue do cliente a quem se destina a mensagem.
 
-### Comando - ASKQUEUE
+### ASKQUEUE
 
 Com este comando o cliente pede ao servidor todas as suas mensagens não lidas enviando uma mensagem "ASKQUEUE", ao receber a mensagem e após validar os dados, o servidor procura na queue do cliente que enviou o request, todas as mensagens nao lidas, e envia para cada mensagem o seu número, sender, timestamp, e subject.
 
@@ -43,11 +43,11 @@ Quando o cliente recebe esta mensagem além de validar os dados do servidor, val
 
 No caso de não ter mensagens por ler, é apresentada a mensagem "Your inbox is empty".
 
-### Comando - GETMSG `<NUM>`
+### GETMSG `<NUM>`
 
 Este comando pede ao servidor uma mensagem, identificada por número, enviando GETMSG `<X>`, ao receber esta mensagem o servidor vai a queue buscar a mensagem requisitada, e envia a mesma ao cliente, ao receber esta mensagem e verificar que foi enviada pelo servidor, obtem o certificado do SENDER para verificar a assinatura da mensagem, e desencriptar a chave AES que acompanhava a mensagem utilizando a sua chave privada, usa essa mesma chave para obter a mensagem original e faz envia para o stdout.
 
-### Comando - HELP
+### HELP
 
 Este comando é responsavel por informar o utilizador dos diferentes comandos disponveis para o cliente, é também apresentado no caso do utilizador inserir um comando inválido.
 
