@@ -26,7 +26,7 @@ def get_userdata(p12_fname, session_file):
     return (private_key, user_cert, ca_cert)
 
 def handle_askqueue_command(message_queue, sender, session_file):
-    print("ASKQUEUE Command Received")
+    print("ASKQUEUE Command Received from", sender)
 
     # obtem a queue do target
     uid_queue = message_queue.get(sender, [])
@@ -70,7 +70,7 @@ def handle_askqueue_command(message_queue, sender, session_file):
     return second
 
 def handle_getmsg_command_bson(message_queue, sender, session_file, num):
-    print("GETMSG Command received")
+    print("GETMSG Command received from", sender)
 
     msg_number = int(num) - 1  # fix ao index
 
@@ -103,7 +103,7 @@ def handle_getmsg_command_bson(message_queue, sender, session_file, num):
         return response.encode()
 
 async def handle_get_target_data_command(uids, message_queue, sender, session_file, target, reader, writer, shared_DHKey, algorythm_AES):
-    print("SEND command receivied")
+    print("SEND command receivied from", sender)
 
     # uid nao existente
     if target not in uids:
@@ -111,7 +111,7 @@ async def handle_get_target_data_command(uids, message_queue, sender, session_fi
         return -1
     else:
         certificate = uids[target]
-        print(uids)
+        # print(uids)
     
     # enc the message and send it
     rp = process_send_message(certificate, shared_DHKey, algorythm_AES, p12_file)
@@ -129,4 +129,4 @@ async def handle_get_target_data_command(uids, message_queue, sender, session_fi
 
     log_action(session_file, "SENDMSG", sender, target)
 
-    print(message_queue)
+    # print(message_queue)

@@ -242,7 +242,7 @@ class Client:
 
         print("-----------------HANDSHAKE------------------------\n")
 
-        print("Cliente a gerar os parametros")
+        # print("Cliente a gerar os parametros")
 
         parameters = dh.generate_parameters(generator=2, key_size=2048)
 
@@ -252,7 +252,7 @@ class Client:
             format=serialization.ParameterFormat.PKCS3
         )
 
-        print("Cliente envia os parametros")
+        # print("Cliente envia os parametros")
 
         # enviar ao servidor
         writer.write(param_bytes)
@@ -268,7 +268,7 @@ class Client:
         # cliente envia a sua public key gerada pelos parametros dh
         writer.write(client_public_key_bytes)
 
-        print("Esperar pelas chaves assinadas pelo server...")
+        # print("Esperar pelas chaves assinadas pelo server...")
 
         # espera pela resposta
         reply = await reader.read(max_msg_size)
@@ -286,14 +286,18 @@ class Client:
         # criar um par de chaves para validar as sign Keys
         pair_pubKeyServ_pubKeyCli = mkpair(server_public_key_bytes, client_public_key_bytes)
         
-        print("Pares descompactados")
-        print("Validar certificado do server")
+        # print("Pares descompactados")
+        # print("Validar certificado do server")
+
+        print("Validar as chaves enviadas pelo servidor com o seu certificado")
+
 
         valid = valida_cert(cert_server, 'MSG_SERVER', 0)
         if not valid:
             print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
-
-        print("Validar chaves assinadas do server")
+        else: 
+            print("Certificadp do server válido.")
+        # print("Validar chaves assinadas do server")
 
         # validar se as chaves recebidas estão corretas
         public_RSA_key_server = cert_server.public_key()
@@ -307,7 +311,7 @@ class Client:
             hashes.SHA256()
         )
 
-        print("Derivar chave partilhada")
+        # print("Derivar chave partilhada")
         
         # derivar a chave
         server_public_key = serialization.load_pem_public_key(server_public_key_bytes)
@@ -320,7 +324,7 @@ class Client:
             info=b'handshake data',
         ).derive(shared_key)
 
-        print(f"Derived key: {derived_key}")
+        # print(f"Derived key: {derived_key}")
         self.shared_DHKey = derived_key # assign new key
 
         # fazer par de chave publica dh do cliente com chave publica dh do server
@@ -342,11 +346,14 @@ class Client:
 
         pair_signKeys_certCli = mkpair(sign_Keys, cert_client)
 
-        print("Enviar chaves assinadas pelo cliente")
+        # print("Enviar chaves assinadas pelo cliente")
 
         writer.write(pair_signKeys_certCli)
         
         self.algorythm_AES = algorithms.AES(self.shared_DHKey)
+
+        print("Chave partilhado gerada")
+
         
         print("--------------------------------------------------\n")
 

@@ -112,7 +112,7 @@ def valida_cert(cert, name, tipo_cert):
         return True
     except Exception as e:
         print(e)
-        print("Certificate is invalid!")
+        # print("Certificate is invalid!")
         return False
 
 
