@@ -84,7 +84,7 @@ def cert_validexts(cert, policy=[]):
 
 
 def valida_cert(cert, name, tipo_cert):
-    return True # comentar isto
+    #return True # comentar isto
     try:
         # print(cert)
         if tipo_cert == 1: 
