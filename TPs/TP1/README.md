@@ -14,7 +14,11 @@ Para prevenir um servidor curioso, o conteúdo das mensagens é encriptado usand
 
 ## Handshake inicial
 
-Este handshake inicial é utilizado para a troca de chaves entre cliente-servidor para garantir a segurança da comunicação entre os mesmos, neste handshake o cliente começa por realizar a geração dos parâmetros para o diffie-hellman e envia os mesmos para o servidor, depois ambos trocam as chaves públicas, certificados e assinaturas, pro fim fazem a verificação dos mesmos, se verificação for feita com sucesso, ambos calculam a sua chave partilhada.
+Este handshake inicial é utilizado para a troca de chaves entre cliente-servidor para garantir a segurança da comunicação entre os mesmos, neste handshake o cliente começa por realizar a geração dos parâmetros para o diffie-hellman e envia os mesmos para o servidor, depois gera a sua chave publica enviando-a também para o servidor. 
+O servidor ao receber estes dados faz um "par" com a sua chave publica e com a enviado pelo cliente assinando-as, este par assinado é então enviado em conjunto com o seu certificado para o cliente. 
+O cliente irá então válidar os dados recebidos e efetuar o mesmo processo enviando o par de chaves assinado por si para o servidor o validar. No final se todas as verificações forem feitas com sucesso ambos calculam a chave partilhada.
+
+![imagem](https://github.com/uminho-lei-ssi/2324-G31/assets/116183745/36200c65-dba4-444e-9c3c-146da25e00a6)
 
 Durante este processo o servidor também realiza um registo do cliente, usando o seu UID para criar uma entrada na queue de mensagens, e na lista de UIDs onde irá ser ocompanhado pelo seu certificado.
 
@@ -34,6 +38,8 @@ Este comando é utilizado por um cliente, e gera lhe um ficheiro .p12 com uma ch
 Este comando vem em conjunto com o uid do destinatário e o subject, e será depois pedido para inserir o conteudo da mensagem que não deve exceder os 1000 bytes, depois do utilizador fornecer toda a informação, este vai enviar uma mensagem "SEND `<DESTINATION>`" ao servidor, à qual o servidor irá responder com o certificado do destinatário da mensagem, ao receber o certificado, é verificado se o certificado é válido, depois uma chave AES é gerada para criptografar o conteudo da mensagem, após o conteudo ser criptografado com a chave AES, a chave é então criptografada com a chave publica do destinatário obtida no certifico recebido usando o RSA. Por fim mensagem criptografada, a chave AES criptografada, assinatura digital e o certificado do `<SENDER>` são enviadas ao servidor.
 
 Ao receber a mensagem o servidor irá guardar os detalhes na queue do cliente a quem se destina a mensagem.
+
+![imagem](https://github.com/uminho-lei-ssi/2324-G31/assets/116183745/116cf5af-8c9c-49ab-a0d5-c71ed07851e0)
 
 ### ASKQUEUE
 
@@ -64,6 +70,11 @@ Por fim ao gerar um ficheiro .p12 para um cliente este é gerado de forma semelh
 
 Foram implementadas logs no servidor, as logs são armazenadas na pasta /logs e guardadas em ficheiros .log, é gerado um ficheiro para cada dia, e dentro do ficheiro são apresentadas as sessões realizadas no respetivo dia, o inicio das sessões sao indicadas por "BEGIN-SESSION" e pela data de inicialização, o fim das sessões é indicado por "END-SESSION", pela data de finalização e pela duração da sessão, durante a sessão é realizado um log por cada comando realizado pelo cliente, todos os logs são acompanhados pela data de realização e pelo nome do cliente que fez o request ao servidor, aparece também o comando utilizado, no caso de ser um comando SEND, aparecente também o destinatário do mesmo, e no caso de um comando GETMSG, a mensagem que o cliente requisitou.
 
+### BSON
+
+De forma a melhorar a eficiência das mensagens trocadas entre cliente e servidor utilizámos a extensão BSON nas mensagens. No ficheiro messages_dict.py foram estabelecidos todos os formatos de mensagem a que um cliente tem acesso sendo que são estes os dicionários que irão ser enviados para o servidor interpretar.
+Todas as mensagens que utilizam os formatos definidos anteriormente, serão então codificadas para binário através do encoding do BSON.
+
 # Trabalho Futuro
 
-Para trabalho futuro gostariamos de melhorar a formatação das mensagens enviadas de modo a ser mais consistente e finalizar a implementação do modo que define o tipo de certificados que irão ser utilizados, podendo estes ser os certificados fornecidos pelos docentes ou os certificados que nós geramos.
+Para trabalho futuro gostariamos de melhorar a formatação das mensagens enviadas de modo a ser mais consistente, visto que temos como plano implementar também a encodificação do BSON nas mensagens enviadas pelo servidor. Gostarríamos também de realizar a implementação do modo que define o tipo de certificados que irão ser utilizados, podendo estes ser os certificados fornecidos pelos docentes ou os certificados que nós geramos.
