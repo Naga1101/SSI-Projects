@@ -20,12 +20,12 @@ Durante este processo o servidor também realiza um registo do cliente, usando o
 
 ## Comandos
 
-### Comando - -user <fname>
+### Comando - -user `<fname>`
 
 Este comando é reconhecido pelo cliente como uma flag, no caso de se chamar a função com a flag -user <fname> o ficheiro .p12 utilizado pelo cliente será o selecionado pelo mesmo, tendo o seu caminho sido fornecido no <fname>.
 
 
-### Comando - -gen <fname>
+### Comando - -gen `<fname>`
 
 Este comando é utilizado por um cliente, e gera lhe um ficheiro .p12 com uma chave privada, um certificado e com o issuer MSG_CA. Após a criação deste ficheiro o cliente poderá utilizá-lo em junção com o comando -user para executar os comandos que iremos explicar a seguir. Qualquer ficheiro criado será armazenado na pasta projCA.
 
