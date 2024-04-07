@@ -49,8 +49,6 @@ def handle_askqueue_command(message_queue, sender, session_file):
 
                 message_dict = bson.loads(bson_message)
                 subject = message_dict['subject']
-                print("dict: ", message_dict)
-                print("subject: ", subject)
                 messages_list.append({
                     "number": message_n,
                     "sender": message[0],

@@ -296,7 +296,7 @@ class Client:
         if not valid:
             print("MSG RELAY SERVICE: verification error!", file=sys.stderr)
         else: 
-            print("Certificadp do server válido.")
+            print("Certificado do server válido.")
         # print("Validar chaves assinadas do server")
 
         # validar se as chaves recebidas estão corretas
