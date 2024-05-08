@@ -24,7 +24,7 @@ void signal_handler(int sig);
 void process_incoming_messages();
 void store_message(const char *message);
 void deliver_messages();
-void create_daemon();
+void skeleton_daemon();
 
 int main() {
     // Configuração do tratamento de sinais
@@ -149,7 +149,7 @@ void process_incoming_messages(int fifo_fd) {
             switch (request.flag)
             {
             case MENSAGEM:
-                syslog(LOG_NOTICE, "Command: %s\n", request.command);
+                syslog(LOG_NOTICE, "Flag: %d\n", request.flag);
                 handle_user_message(request, usersFolderName);
                 break;
             case GRUPO:
