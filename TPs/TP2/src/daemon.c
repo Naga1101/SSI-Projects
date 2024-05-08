@@ -14,9 +14,9 @@
 #include "../include/struct.h"
 #include "../include/command_handler.h"
 
-#define mainFolderName "./messages"
-#define usersFolderName "./messages/users"
-#define groupsFolderName "./messages/groups"
+#define mainFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages"
+#define usersFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/users"
+#define groupsFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/groups"
 
 
 void skeleton_daemon() {
@@ -100,7 +100,7 @@ void process_incoming_messages(int fifo_fd) {
             case USER:
                 syslog(LOG_NOTICE, "USER");
                 syslog(LOG_NOTICE, "Command: %s\n", request.command);
-                handle_user_command(request);
+                handle_user_command(request, usersFolderName);
                 break;
             default:
                 break;
@@ -130,24 +130,6 @@ int main() {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-    // criação das directorias que vão armazenar as mensagens
-    if (mkdir(mainFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
-
-    if (mkdir(usersFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
-
-    if (mkdir(groupsFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
 
     // Inicializa o daemon
     skeleton_daemon();
@@ -161,6 +143,25 @@ int main() {
     if(mkfifo(FIFO, 0666) != 0){
         perror("Error creating fifo: ");
         exit(EXIT_FAILURE);
+    }
+
+    // criação das directorias que vão armazenar as mensagens
+    if (mkdir(mainFolderName, 0777) == 0) {
+        syslog(LOG_NOTICE, "Folder created successfully.\n");
+    } else {
+        syslog(LOG_NOTICE, "Folder not created successfully.\n");
+    }
+
+    if (mkdir(usersFolderName, 0777) == 0) {
+        syslog(LOG_NOTICE, "Folder created successfully.\n");
+    } else {
+        syslog(LOG_NOTICE, "Folder not created successfully.\n");
+    }
+
+    if (mkdir(groupsFolderName, 0777) == 0) {
+        syslog(LOG_NOTICE, "Folder created successfully.\n");
+    } else {
+        syslog(LOG_NOTICE, "Folder not created successfully.\n");
     }
 
     //abre o fifo para ler os pedidos

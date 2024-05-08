@@ -22,3 +22,10 @@ typedef struct {
 } ConcordiaRequest;
 
 #endif /* STRUCTS_H */
+
+// syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
+// syslog(LOG_NOTICE, "Handler da flag Command: %s\n", request.command);
+// syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
+// syslog(LOG_NOTICE, "Handler da flag Dest: %s\n", request.dest);
+// syslog(LOG_NOTICE, "Handler da flag Msg: %s\n", request.msg);
+// syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);

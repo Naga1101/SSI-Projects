@@ -9,9 +9,9 @@
 #include <syslog.h>
 
 #include "../include/command_handler.h"
-// #include "./message_commands.c"
-// #include "./group_commands.c"
-// #include "./user_commands.c"
+// #include "../include/message_commands.h"
+// #include "../include/group_commands.h"
+#include "../include/user_commands.h"
 
 void handle_user_message(ConcordiaRequest request, char* usersFolderName){
     syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
@@ -59,10 +59,12 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
     }
 }
 
-void handle_user_command(ConcordiaRequest request){
+void handle_user_command(ConcordiaRequest request, char* usersFolderName){
     syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
+
     if (strcmp(request.command, "ativar") == 0) {
-        printf("Handling ativar command\n");
+        syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
+        activate_user(request.user, usersFolderName);
 
     } else if (strcmp(request.command, "desativar") == 0) {
         printf("Handling desativar command\n");

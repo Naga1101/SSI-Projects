@@ -5,7 +5,6 @@
 
 void handle_user_message(ConcordiaRequest request, char* usersFolderName);
 void handle_group_message(ConcordiaRequest request, char* groupsFolderName);
-void handle_user_command(ConcordiaRequest request);
-
+void handle_user_command(ConcordiaRequest request, char* usersFolderName);
 
 #endif /* COMMAND_HANDLER_H */
