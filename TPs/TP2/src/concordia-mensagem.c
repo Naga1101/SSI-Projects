@@ -27,53 +27,68 @@ void send_to_deamon(ConcordiaRequest *request){
 
 }
 
+char* obter_usuario_atual() {
+    char* usuario = getenv("USER");
+    return usuario;
+}
+
 void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
-    strncpy(request->command,"enviar",10);
-    strncpy(request->dest,dest,16);
-    strncpy(request->msg,msg,512);
-    
-    printf("flag: %d, comando: %s, dest: %s, msg: %s", request->flag, request->command, request->dest, request->msg);
+    snprintf(request->command, COMMAND_SIZE, "enviar");
+    snprintf(request->dest, usersize, "%s", dest);
+    snprintf(request->msg, MSG_SIZE, "%s", msg);
+    char *user = obter_usuario_atual();
+    snprintf(request->user, usersize,"%s", user);
 
-    send_to_deamon(request);    
     printf("Enviando mensagem para %s: %s\n", dest, msg);
+    send_to_deamon(request);
 }
 
 void listar_mensagens(int all, ConcordiaRequest *request) {
-    request->flag =  MENSAGEM;
-    strncpy(request->command,"listar",10);
+    request->flag = MENSAGEM;
+    snprintf(request->command, COMMAND_SIZE, "listar");
     request->all_mid = all;
+    char *user = obter_usuario_atual();
+    snprintf(request->user, usersize,"%s", user);
 
-    send_to_deamon(request);
     printf("Listando mensagens%s\n", all ? " (todas)" : "");
+    send_to_deamon(request);
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
-    strncpy(request->command,"ler",10);
+    snprintf(request->command, COMMAND_SIZE, "ler");
     request->all_mid = mid;
+    char *user = obter_usuario_atual();
+    snprintf(request->user, usersize,"%s", user);
 
-    send_to_deamon(request);
     printf("Lendo mensagem %d\n", mid);
+    send_to_deamon(request);
 }
 
 void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
-    strncpy(request->command,"responder",10);
+    snprintf(request->command, COMMAND_SIZE, "responder");
     request->all_mid = mid;
-    strncpy(request->msg,msg,512);
+    snprintf(request->msg, MSG_SIZE, "%s", msg);
+    char *user = obter_usuario_atual();
+    snprintf(request->user, usersize,"%s", user);
 
-    send_to_deamon(request);
     printf("Respondendo à mensagem %d: %s\n", mid, msg);
+    send_to_deamon(request);
 }
 
 void remover_mensagem(int mid, ConcordiaRequest *request) {
-    request->flag = MENSAGEM;
-    strncpy(request->command,"remover",10);
-    request->all_mid = mid;
 
-    send_to_deamon(request);
+
+    request->flag = MENSAGEM;
+    snprintf(request->command, COMMAND_SIZE, "remover");
+    request->all_mid = mid;
+    char *user = obter_usuario_atual();
+    snprintf(request->user, usersize,"%s", user);
+
     printf("Removendo mensagem %d\n", mid);
+    send_to_deamon(request);
 }
 
 
@@ -89,12 +104,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    request->flag = 0;
-    request->command[0] = '\0';
-    request->user[0] = '\0';
-    request->dest[0] = '\0';
-    request->msg[0] = '\0';
-    request->all_mid = 0;
+    request->flag = MENSAGEM;
 
     if (strcmp(argv[1], "enviar") == 0 && argc == 4) {
         enviar_mensagem(argv[2], argv[3], request);

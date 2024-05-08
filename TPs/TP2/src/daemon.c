@@ -8,7 +8,7 @@
 #include <syslog.h>
 #include <string.h>
 
-//grep -a 'concordia_daemon' /var/log/syslog
+// grep -a 'concordia_daemon' /var/log/syslog
 // ps -ef 
 
 #include "../include/struct.h"
@@ -18,68 +18,6 @@
 #define usersFolderName "./messages/users"
 #define groupsFolderName "./messages/groups"
 
-
-// Function prototypes
-void signal_handler(int sig);
-void process_incoming_messages();
-void store_message(const char *message);
-void deliver_messages();
-void skeleton_daemon();
-
-int main() {
-    // Configuração do tratamento de sinais
-    signal(SIGINT, signal_handler);
-    signal(SIGTERM, signal_handler);
-
-    // criação das directorias que vão armazenar as mensagens
-    if (mkdir(mainFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
-
-    if (mkdir(usersFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
-
-    if (mkdir(groupsFolderName, 0777) == 0) {
-        printf("Folder created successfully.\n");
-    } else {
-        printf("Unable to create folder.\n");
-    }
-
-    // Inicializa o daemon
-    skeleton_daemon();
-
-    int fd;
-
-    //apaga por causa dos testes
-    unlink(FIFO);
-
-    //criar o fifo
-    if(mkfifo(FIFO, 0666) != 0){
-        perror("Error creating fifo: ");
-        exit(EXIT_FAILURE);
-    }
-
-    //abre o fifo para ler os pedidos
-    fd = open(FIFO, O_RDONLY);
-    if(fd == -1){
-        perror("Error opening fifo");
-        exit(EXIT_FAILURE);
-    }
-
-    // Loop principal do daemon
-    while (1) {
-        process_incoming_messages(fd);
-        deliver_messages();
-        sleep(1);  // Substitua por uma espera mais eficiente se necessário
-    }
-
-    exit(EXIT_SUCCESS);
-}
 
 void skeleton_daemon() {
     pid_t pid;
@@ -149,14 +87,18 @@ void process_incoming_messages(int fifo_fd) {
             switch (request.flag)
             {
             case MENSAGEM:
-                syslog(LOG_NOTICE, "Flag: %d\n", request.flag);
+                syslog(LOG_NOTICE, "MENSAGEM");
                 handle_user_message(request, usersFolderName);
                 break;
             case GRUPO:
+                syslog(LOG_NOTICE, "GRUPO");
                 syslog(LOG_NOTICE, "Command: %s\n", request.command);
+                syslog(LOG_NOTICE, "user: %s\n", request.user);
+                syslog(LOG_NOTICE, "dest: %s\n", request.dest);
                 handle_group_message(request, groupsFolderName);
                 break;
             case USER:
+                syslog(LOG_NOTICE, "USER");
                 syslog(LOG_NOTICE, "Command: %s\n", request.command);
                 handle_user_command(request);
                 break;
@@ -181,4 +123,59 @@ void signal_handler(int sig) {
         printf("Daemon terminando...\n");
         exit(EXIT_SUCCESS);
     }
+}
+
+int main() {
+    // Configuração do tratamento de sinais
+    signal(SIGINT, signal_handler);
+    signal(SIGTERM, signal_handler);
+
+    // criação das directorias que vão armazenar as mensagens
+    if (mkdir(mainFolderName, 0777) == 0) {
+        printf("Folder created successfully.\n");
+    } else {
+        printf("Unable to create folder.\n");
+    }
+
+    if (mkdir(usersFolderName, 0777) == 0) {
+        printf("Folder created successfully.\n");
+    } else {
+        printf("Unable to create folder.\n");
+    }
+
+    if (mkdir(groupsFolderName, 0777) == 0) {
+        printf("Folder created successfully.\n");
+    } else {
+        printf("Unable to create folder.\n");
+    }
+
+    // Inicializa o daemon
+    skeleton_daemon();
+
+    int fd;
+
+    //apaga por causa dos testes
+    unlink(FIFO);
+
+    //criar o fifo
+    if(mkfifo(FIFO, 0666) != 0){
+        perror("Error creating fifo: ");
+        exit(EXIT_FAILURE);
+    }
+
+    //abre o fifo para ler os pedidos
+    fd = open(FIFO, O_RDONLY);
+    if(fd == -1){
+        perror("Error opening fifo");
+        exit(EXIT_FAILURE);
+    }
+
+    // Loop principal do daemon
+    while (1) {
+        process_incoming_messages(fd);
+        deliver_messages();
+        sleep(1);  // Substitua por uma espera mais eficiente se necessário
+    }
+
+    exit(EXIT_SUCCESS);
 }

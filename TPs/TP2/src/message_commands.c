@@ -6,4 +6,4 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "./include/struct.h"
+#include "../include/struct.h"
