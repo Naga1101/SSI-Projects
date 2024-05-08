@@ -15,7 +15,7 @@ concordia-user: bin/concordia-user
 folders:
 	@mkdir -p src include obj bin tmp
 
-bin/daemon: obj/daemon.o
+bin/daemon: obj/daemon.o obj/command_handler.o
 	$(CC) $(LDFLAGS) $^ -o $@
 
 bin/concordia-mensagem: obj/concordia-mensagem.o

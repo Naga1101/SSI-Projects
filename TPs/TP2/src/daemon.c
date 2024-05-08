@@ -5,9 +5,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <syslog.h>
+#include <string.h>
 
-#include "./include/struct.h"
-#include "./command_handler.c"
+//grep -a 'concordia_daemon' /var/log/syslog
+// ps -ef 
+
+#include "../include/struct.h"
+#include "../include/command_handler.h"
 
 #define mainFolderName "./messages"
 #define usersFolderName "./messages/users"
@@ -46,7 +51,7 @@ int main() {
     }
 
     // Inicializa o daemon
-    create_daemon();
+    skeleton_daemon();
 
     int fd;
 
@@ -76,44 +81,57 @@ int main() {
     exit(EXIT_SUCCESS);
 }
 
-void create_daemon() {
+void skeleton_daemon() {
     pid_t pid;
 
-    // Primeiro fork
+    /* Fork off the parent process */
     pid = fork();
-    if (pid < 0) {
+
+    /* An error occurred */
+    if (pid < 0)
         exit(EXIT_FAILURE);
-    }
-    if (pid > 0) {
+
+    /* Success: Let the parent terminate */
+    if (pid > 0)
         exit(EXIT_SUCCESS);
-    }
 
-    // Cria uma nova sessão
-    if (setsid() < 0) {
+    /* On success: The child process becomes session leader */
+    if (setsid() < 0)
         exit(EXIT_FAILURE);
-    }
 
-    // Segundo fork
+    /* Catch, ignore and handle signals */
+    //TODO: Implement a working signal handler here
+    signal(SIGCHLD, SIG_IGN);
+    signal(SIGHUP, SIG_IGN);
+
+    /* Fork off for the second time*/
     pid = fork();
-    if (pid < 0) {
+
+    /* An error occurred */
+    if (pid < 0)
         exit(EXIT_FAILURE);
-    }
-    if (pid > 0) {
+
+    /* Success: Let the second parent terminate */
+    if (pid > 0)
         exit(EXIT_SUCCESS);
-    }
 
-    // Altera o diretório de trabalho
-    if (chdir("/") < 0) {
-        exit(EXIT_FAILURE);
-    }
-
-    // Redefine a máscara de arquivo
+    /* Set new file permissions */
     umask(0);
 
-    // Fecha todos os descritores de arquivo
-    for (int x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
+    /* Change the working directory to the root directory */
+    /* or another appropriated directory */
+    chdir("/");
+
+    /* Close all open file descriptors */
+    int x;
+    for (x = sysconf(_SC_OPEN_MAX); x>=0; x--)
+    {
         close(x);
     }
+
+    /* Open the log file */
+    openlog("concordia_daemon", LOG_PID, LOG_DAEMON);
+    syslog(LOG_NOTICE, "Concordia daemon started successfully.");
 }
 
 void process_incoming_messages(int fifo_fd) {
@@ -131,12 +149,15 @@ void process_incoming_messages(int fifo_fd) {
             switch (request.flag)
             {
             case MENSAGEM:
+                syslog(LOG_NOTICE, "Command: %s\n", request.command);
                 handle_user_message(request, usersFolderName);
                 break;
             case GRUPO:
+                syslog(LOG_NOTICE, "Command: %s\n", request.command);
                 handle_group_message(request, groupsFolderName);
                 break;
             case USER:
+                syslog(LOG_NOTICE, "Command: %s\n", request.command);
                 handle_user_command(request);
                 break;
             default:
