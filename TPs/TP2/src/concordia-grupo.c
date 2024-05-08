@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "./include/struct.h"
+
 void criar_grupo(const char *nome);
 void remover_grupo();
 void listar_membros();

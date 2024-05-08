@@ -1,12 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <unistd.h>
 
-#include "../include/structs.h"
+#include "./include/struct.h"
 
 void enviar_mensagem(const char *dest, const char *msg);
 void listar_mensagens(int all);
@@ -67,23 +63,4 @@ void responder_mensagem(int mid, const char *msg) {
 void remover_mensagem(int mid) {
     printf("Removendo mensagem %d\n", mid);
     // Implementar funcionalidade
-}
-
-void send_to_deamon(ConcordiaRequest *request){
-    int fd = open(FIFO, O_WRONLY);
-    if (fd == -1){
-        perror("Erro ao abrir o pipe para requests");
-        exit(EXIT_FAILURE);
-    }
-
-
-    if(write(fd, request, sizeof(ConcordiaRequest)) == -1){
-        perror("Falha ao enviar o request");
-        close(fd);
-        exit(EXIT_FAILURE);
-    }
-
-    close(fd);
-    printf("Menesagem enviada com sucesso");
-
 }
