@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <syslog.h>
 #include <string.h>
+#include <pwd.h>
 
 // grep -a 'concordia_daemon' /var/log/syslog
 // ps -ef 
@@ -39,7 +40,6 @@ void skeleton_daemon() {
 
     /* Catch, ignore and handle signals */
     //TODO: Implement a working signal handler here
-    signal(SIGCHLD, SIG_IGN);
     signal(SIGHUP, SIG_IGN);
 
     /* Fork off for the second time*/
@@ -130,7 +130,6 @@ int main() {
     signal(SIGINT, signal_handler);
     signal(SIGTERM, signal_handler);
 
-
     // Inicializa o daemon
     skeleton_daemon();
 
@@ -146,19 +145,19 @@ int main() {
     }
 
     // criação das directorias que vão armazenar as mensagens
-    if (mkdir(mainFolderName, 0777) == 0) {
+    if (mkdir(mainFolderName, 0755) == 0) {
         syslog(LOG_NOTICE, "Folder created successfully.\n");
     } else {
         syslog(LOG_NOTICE, "Folder not created successfully.\n");
     }
 
-    if (mkdir(usersFolderName, 0777) == 0) {
+    if (mkdir(usersFolderName, 0755) == 0) {
         syslog(LOG_NOTICE, "Folder created successfully.\n");
     } else {
         syslog(LOG_NOTICE, "Folder not created successfully.\n");
     }
 
-    if (mkdir(groupsFolderName, 0777) == 0) {
+    if (mkdir(groupsFolderName, 0755) == 0) {
         syslog(LOG_NOTICE, "Folder created successfully.\n");
     } else {
         syslog(LOG_NOTICE, "Folder not created successfully.\n");
