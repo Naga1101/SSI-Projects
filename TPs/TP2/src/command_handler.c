@@ -9,7 +9,7 @@
 #include <syslog.h>
 
 #include "../include/command_handler.h"
-// #include "../include/message_commands.h"
+#include "../include/message_commands.h"
 // #include "../include/group_commands.h"
 #include "../include/user_commands.h"
 
@@ -18,6 +18,7 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName){
     if (strcmp(request.command, "enviar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag Dest: %s\n", request.dest);
         syslog(LOG_NOTICE, "Handler da flag Msg: %s\n", request.msg);
+        enviar_message(request, usersFolderName);
 
     } else if (strcmp(request.command, "listar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);

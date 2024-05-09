@@ -42,7 +42,7 @@ void activate_user(char* user, char* folderPath){
     }
 
     // Grant group read, write, and execute permissions
-    if (chmod(userFolderPath, 0500) == -1) {
+    if (chmod(userFolderPath, 0570) == -1) {
         syslog(LOG_ERR, "Failed to change permissions of the directory: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
