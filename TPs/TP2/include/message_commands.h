@@ -6,6 +6,7 @@
 void enviar_message(ConcordiaRequest request, char* folderPath);
 void ler_message(ConcordiaRequest request, char* folderPath);
 void responder_message(ConcordiaRequest request, char* folderPath);
+void remover_message(ConcordiaRequest request, char* folderPath);
 
 
 struct FileInfo {
@@ -21,4 +22,5 @@ int compareFileInfo(const void *a, const void *b);
 int getHighestID(const char *userFolderPath);
 void sort_files(char *folderPath, struct FileInfo sortedFiles[]);
 void generate_timestamp(char *timestamp);
-#endif /* MESSAGE_COMMANDS_H */
+
+#endif 

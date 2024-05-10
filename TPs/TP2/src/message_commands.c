@@ -322,3 +322,34 @@ void responder_message(ConcordiaRequest request, char* folderPath){
     syslog(LOG_NOTICE, "Updated name from %s to file: %s\n", sortedFiles[i].fileName, updateName);
 
 }
+
+void remover_message(ConcordiaRequest request, char* folderPath){
+    int i = request.all_mid;
+    syslog(LOG_NOTICE, "Entrei remover: %s\n", request.user);
+
+    char userFolderPath[100];
+    snprintf(userFolderPath, sizeof(userFolderPath), "%s/%s", folderPath, request.user); // aqui
+    // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
+    struct stat st;
+    if (stat(userFolderPath, &st) == -1) {
+        syslog(LOG_ERR, "Folder doesnt exist: %s\n", userFolderPath);
+        exit(EXIT_FAILURE);
+    }
+
+    int numFiles = count_files(userFolderPath);
+    struct FileInfo sortedFiles[numFiles];
+    sort_files(userFolderPath, sortedFiles);
+
+    if (sortedFiles == NULL) {
+        syslog(LOG_ERR, "Error sorting files.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char fileRemove[264];
+    snprintf(fileRemove, sizeof(fileRemove), "%s/%s", userFolderPath, sortedFiles[i].fileName);
+    if (remove(fileRemove) == 0) {
+        syslog(LOG_NOTICE, "File '%s' has been successfully removed.\n", fileRemove);
+    } else {
+        syslog(LOG_PERROR, "Error removing file %s\n", fileRemove);
+    }
+}

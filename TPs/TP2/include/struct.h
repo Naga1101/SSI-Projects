@@ -14,7 +14,7 @@ typedef enum{
 
 typedef struct {
     FLAG flag;
-    char command[17];
+    char command[32];
     char user[16];
     char dest[16];
     char msg[MSG_SIZE];
@@ -22,7 +22,7 @@ typedef struct {
     int pid;
 } ConcordiaRequest;
 
-#endif /* STRUCTS_H */
+#endif 
 
 // syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
 // syslog(LOG_NOTICE, "Handler da flag Command: %s\n", request.command);

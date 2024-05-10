@@ -34,7 +34,9 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName){
         responder_message(request, usersFolderName);
 
     } else if (strcmp(request.command, "remover") == 0) {
+        syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
+        remover_message(request, usersFolderName);
 
     } else {
         printf("Unknown command: %s\n", request.command);

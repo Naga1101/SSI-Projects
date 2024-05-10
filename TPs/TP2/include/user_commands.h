@@ -5,4 +5,4 @@
 
 void activate_user(char* user, char* folderPath);
 
-#endif /* USER_COMMANDS_H */
+#endif 

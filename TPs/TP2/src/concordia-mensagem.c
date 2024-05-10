@@ -87,7 +87,7 @@ void remover_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    printf("Removendo mensagem %d\n", mid);
+    printf("Removendo mensagem %d\n", request->all_mid);
     send_to_deamon(request);
 }
 

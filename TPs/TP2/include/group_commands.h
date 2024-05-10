@@ -8,4 +8,5 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
 void listar_membros_grupo(char *user, char *dest, char *groupsFolderName, int pid);
 void returnListToClient(int pid, char *message);
 void enviar_mensagem_grupo(char *user, char *dest, char *msg, char *groupsFolderName);
+
 #endif

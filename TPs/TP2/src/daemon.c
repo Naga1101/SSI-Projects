@@ -13,18 +13,14 @@
 // ps -ef 
 // pkill -f ./daemon
 // sudo truncate -s 0 /var/log/syslog
+// rm -r /usr/share/concordiaINBOX
 
 #include "../include/struct.h"
 #include "../include/command_handler.h"
 
-//#define mainFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages"
-//#define usersFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/users"
-//#define groupsFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/groups"
-
-#define mainFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages"
-#define usersFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages/users"
-#define groupsFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages/groups"
-
+#define mainFolderName "/usr/share/concordiaINBOX"
+#define usersFolderName "/usr/share/concordiaINBOX/users"
+#define groupsFolderName "/usr/share/concordiaINBOX/groups"
 
 void skeleton_daemon() {
     pid_t pid;
