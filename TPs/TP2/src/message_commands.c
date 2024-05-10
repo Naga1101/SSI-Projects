@@ -129,7 +129,9 @@ void ler_message(ConcordiaRequest request, char* folderPath){
 
     if(sortedFiles[i].read == 0){
         char updateName[264];                                                                                          //para onde foi enviado, quem enviou
-        snprintf(updateName, sizeof(updateName), "%s/%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", userFolderPath, sortedFiles[i].name, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
+        snprintf(updateName, sizeof(updateName), "%s/%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", userFolderPath, sortedFiles[i].name, 
+        sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, 
+        sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
         rename(fileName, updateName);
     }
 }

@@ -136,7 +136,7 @@ void create_group(char *user, char *group, char* groupFolderPath) {
 
     struct passwd *pw;
     struct group *grp;
-    uid_t userID;
+    //uid_t userID;
     gid_t groupID;
 
     grp = getgrnam(group);
@@ -166,17 +166,16 @@ void create_group(char *user, char *group, char* groupFolderPath) {
         return;
     }
 
-    userID = pw->pw_uid;
+    //userID = pw->pw_uid;
 
-    // temporario user fica a dono
-    if (chown(FolderPath, userID, groupID) == -1) {
+    if (chown(FolderPath, 0, groupID) == -1) {
         syslog(LOG_ERR, "Failed to change owner or group of '%s': %s", FolderPath, strerror(errno));
         rmdir(FolderPath);
         return;
     }
 
     // Set the directory permissions (Total para dono | read para group members)
-    if (chmod(FolderPath, S_IRWXU | S_IRGRP) == -1) {
+    if (chmod(FolderPath, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
         syslog(LOG_ERR, "Failed to set permissions on '%s': %s", FolderPath, strerror(errno));
         rmdir(FolderPath);
         return;
@@ -199,6 +198,14 @@ void create_group(char *user, char *group, char* groupFolderPath) {
     }
 
     fclose(ownerFile);
+
+    if (chown(ownerFilePath, 0, groupID) == -1) {
+        syslog(LOG_ERR, "Failed to change owner or group of owner file '%s': %s", ownerFilePath, strerror(errno));
+    }
+
+    if (chmod(ownerFilePath, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
+        syslog(LOG_ERR, "Failed to set permissions on owner file '%s': %s", ownerFilePath, strerror(errno));
+    }
 
     if (add_user_to_system_group(user, group) != 0) {
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
@@ -483,5 +490,176 @@ void enviar_mensagem_grupo(char *user, char *group, char *msg, char *groupsFolde
 
     close(file);
 
+    // Change the group of the file to match the group folder
+    if (chown(fileName, 0, grp->gr_gid) == -1) {
+        syslog(LOG_ERR, "Failed to change group of the file '%s': %s", fileName, strerror(errno));
+    }
+
+    // Set appropriate permissions for the file (read and write for owner, read for group)
+    if (chmod(fileName, S_IRUSR | S_IWUSR | S_IRGRP) == -1) {
+        syslog(LOG_ERR, "Failed to set permissions on the file '%s': %s", fileName, strerror(errno));
+    }
+
+
     syslog(LOG_NOTICE, "Message written to group %s in file: %s", group, fileName);
+}
+
+
+void ler_mensagem_grupo(ConcordiaRequest request, char* folderPath) {
+    int i = request.all_mid;
+    syslog(LOG_NOTICE, "Entrei ler grupo: %s\n", request.dest);
+
+    char groupFolderPath[120]; 
+    snprintf(groupFolderPath, sizeof(groupFolderPath), "%s/%s", folderPath, request.dest);
+
+    struct stat st;
+    if (stat(groupFolderPath, &st) == -1) {
+        syslog(LOG_ERR, "Group folder does not exist: %s\n", groupFolderPath);
+        exit(EXIT_FAILURE);
+    }
+
+    int numFiles = count_files(groupFolderPath);
+    struct FileInfo sortedFiles[numFiles];
+    sort_files(groupFolderPath, sortedFiles);
+
+    if (sortedFiles == NULL) {
+        syslog(LOG_ERR, "Error sorting files.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    int tam = sortedFiles[i].tam;
+
+    char fileName[256];
+    snprintf(fileName, sizeof(fileName), "%s/%s", groupFolderPath, sortedFiles[i].fileName);
+    syslog(LOG_NOTICE, "Group file: %s tam: %d\n", fileName, tam);
+
+    int file = open(fileName, O_RDONLY);
+    if (file < 0) {
+        if (errno == ENOENT) {
+            syslog(LOG_ERR, "File '%s' does not exist.\n", fileName);
+        } else if (errno == EACCES) {
+            syslog(LOG_ERR, "Permission denied to open file '%s'.\n", fileName);
+        } else {
+            syslog(LOG_ERR, "Error opening file '%s': %s\n", fileName, strerror(errno));
+        }
+        exit(EXIT_FAILURE);
+    }
+
+    char msg[tam + 1];  // Allocating extra byte for null terminator
+    msg[tam] = '\0';
+
+    read(file, msg, tam);
+
+    close(file);
+
+    syslog(LOG_NOTICE, "Group message read: %s\n", msg);
+
+    if (sortedFiles[i].read == 0) {
+        char updateName[380];
+        snprintf(updateName, sizeof(updateName), "%s/%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", 
+                 groupFolderPath, sortedFiles[i].name, sortedFiles[i].nameSender, sortedFiles[i].day, 
+                 sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, 
+                 sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
+        rename(fileName, updateName);
+    }
+
+    returnListToClient(request.pid, msg);
+}
+
+void responder_mensagem_grupo(ConcordiaRequest request, char* groupsFolderPath){
+    syslog(LOG_NOTICE, "Entrei responder grupo: %s\n", request.dest);
+
+    char groupFolderPath[360];
+    snprintf(groupFolderPath, sizeof(groupFolderPath), "%s/%s", groupsFolderPath, request.dest);
+
+    struct stat st;
+    if (stat(groupFolderPath, &st) == -1) {
+        syslog(LOG_ERR, "Folder doesn't exist: %s\n", groupFolderPath);
+        exit(EXIT_FAILURE);
+    }
+
+    int numFiles = count_files(groupFolderPath);
+    struct FileInfo sortedFiles[numFiles];
+    sort_files(groupFolderPath, sortedFiles);
+
+    if (sortedFiles == NULL) {
+        syslog(LOG_ERR, "Error sorting files.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char timestamp[20];
+    generate_timestamp(timestamp);
+
+    int tam = strlen(request.msg);
+    int id = getHighestID(groupFolderPath);
+
+    char fileName[460];
+    snprintf(fileName, sizeof(fileName), "%s/%d;%s;%s;%s;%d;0;0;%d.txt", groupFolderPath, id+1, request.dest, request.user, timestamp, tam, sortedFiles[request.all_mid].id);
+
+    int file = open(fileName, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (file < 0) {
+        syslog(LOG_ERR, "Error opening file '%s': %s", fileName, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    char msg[513];
+    strncpy(msg, request.msg, 512);
+    msg[tam] = '\0';
+    write(file, msg, tam);
+
+    close(file);
+    
+    syslog(LOG_NOTICE, "Reply written to group %s in file: %s\n", request.dest, fileName);
+
+    // Update the existing file to mark as replied
+    char updateName[630];
+    char repliedFile[630];
+    snprintf(repliedFile, sizeof(repliedFile), "%s/%s", groupFolderPath, sortedFiles[request.all_mid].fileName);
+    snprintf(updateName, sizeof(updateName), "%s/%d;%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%d;%d;%d;%d.txt",
+             groupFolderPath, sortedFiles[request.all_mid].id, sortedFiles[request.all_mid].name, sortedFiles[request.all_mid].nameSender, 
+             sortedFiles[request.all_mid].day, sortedFiles[request.all_mid].month, sortedFiles[request.all_mid].year, sortedFiles[request.all_mid].hour, 
+             sortedFiles[request.all_mid].minute, sortedFiles[request.all_mid].second, sortedFiles[request.all_mid].tam, sortedFiles[request.all_mid].read, 
+             sortedFiles[request.all_mid].nReplys + 1, sortedFiles[request.all_mid].isReply);
+
+    rename(repliedFile, updateName);
+    syslog(LOG_NOTICE, "Updated name from %s to file: %s\n", sortedFiles[request.all_mid].fileName, updateName);
+}
+
+
+void remove_group_message(ConcordiaRequest request, char* folderPath){
+    int i = request.all_mid;
+    syslog(LOG_NOTICE, "Entrei remover: %s\n", request.dest);
+
+
+    char GroupFolderPath[100];
+    snprintf(GroupFolderPath, sizeof(GroupFolderPath), "%s/%s", folderPath, request.dest); // aqui
+    // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
+
+    if(!is_owner(GroupFolderPath, request.user)){
+        syslog(LOG_ERR, "Acesso nao autorizado, remove cancelado\n");
+        return;
+    }
+
+    struct stat st;
+    if (stat(GroupFolderPath, &st) == -1) {
+        syslog(LOG_ERR, "Folder doesnt exist: %s\n", GroupFolderPath);
+        exit(EXIT_FAILURE);
+    }
+
+    int numFiles = count_files(GroupFolderPath);
+    struct FileInfo sortedFiles[numFiles];
+    sort_files(GroupFolderPath, sortedFiles);
+
+    if (sortedFiles == NULL) {
+        syslog(LOG_ERR, "Error sorting files.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char fileRemove[264];
+    snprintf(fileRemove, sizeof(fileRemove), "%s/%s", GroupFolderPath, sortedFiles[i].fileName);
+    if (remove(fileRemove) == 0) {
+        syslog(LOG_NOTICE, "File '%s' has been successfully removed.\n", fileRemove);
+    } else {
+        syslog(LOG_PERROR, "Error removing file %s\n", fileRemove);
+    }
 }

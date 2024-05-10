@@ -68,7 +68,12 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
     } else if (strcmp(request.command, "enviar") == 0) {
         enviar_mensagem_grupo(request.user, request.dest, request.msg, groupsFolderName);
     } 
-    
+    else if(strcmp(request.command, "ler") == 0){
+        ler_mensagem_grupo(request, groupsFolderName);
+    }
+    else if(strcmp(request.command, "remover-msg") == 0){
+        remove_group_message(request, groupsFolderName);
+    }
     else {
         printf("Unknown command: %s\n", request.command);
     }
