@@ -170,7 +170,6 @@ void enviar_message(ConcordiaRequest request, char* folderPath){
 }
 
 void ler_message(ConcordiaRequest request, char* folderPath){
-    DIR *dir;
     int i = request.all_mid;
     syslog(LOG_NOTICE, "Entrei ler: %s\n", request.user);
     // char dest[16];
@@ -202,14 +201,9 @@ void ler_message(ConcordiaRequest request, char* folderPath){
     
     int tam = sortedFiles[i].tam;
 
-    dir = opendir(userFolderPath);
-    if (dir == NULL) {
-        syslog(LOG_PERROR,"Unable to open directory");
-        exit(EXIT_FAILURE);
-    }
 
-    char fileName[138];
-    snprintf(fileName, sizeof(fileName), "./%s", sortedFiles[i].fileName);
+    char fileName[256];
+    snprintf(fileName, sizeof(fileName), "%s/%s", userFolderPath, sortedFiles[i].fileName);
     syslog(LOG_NOTICE, "file: %s tam: %d\n", fileName, tam);
 
     int file = open(fileName, O_RDONLY);
@@ -227,13 +221,15 @@ void ler_message(ConcordiaRequest request, char* folderPath){
     char msg[tam];
     msg[tam] = '\0';
 
-    read(file, msg, tam-1);
+    read(file, msg, tam);
 
     close(file);
 
-    closedir(dir);
-
     syslog(LOG_NOTICE, "Message read: %s\n", msg);
 
-    // passar o nome do file para 1
+    if(sortedFiles[i].read == 0){
+        char updateName[256];
+        snprintf(updateName, sizeof(updateName), "%s/%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1.txt", userFolderPath, sortedFiles[i].name, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second, sortedFiles[i].tam);
+        rename(fileName, updateName);
+    }
 }
