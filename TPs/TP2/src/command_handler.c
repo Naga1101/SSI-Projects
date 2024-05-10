@@ -63,7 +63,11 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
         remove_user_from_group(request.user, request.dest, request.msg, groupsFolderName);
         printf("Handling remover-usuario command\n");
 
-    } else {
+    } else if (strcmp(request.command, "enviar") == 0) {
+        enviar_mensagem_grupo(request.user, request.dest, request.msg, groupsFolderName);
+    } 
+    
+    else {
         printf("Unknown command: %s\n", request.command);
     }
 }

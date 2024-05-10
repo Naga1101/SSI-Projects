@@ -121,6 +121,17 @@ void remover_usuario(char *uid, char *grupo, ConcordiaRequest *request) {
     send_to_deamon(request);
 }
 
+void enviar_mensagem(char *group_dest, char *mensagem, ConcordiaRequest *request){
+    printf("enviando mensagem ao grupo %s\n", group_dest);
+
+    snprintf(request->command, COMMAND_SIZE, "enviar");
+    snprintf(request->user, usersize, "%s", obter_usuario_atual());
+    snprintf(request->dest, usersize, "%s", group_dest);
+    snprintf(request->msg, usersize, "%s", mensagem);
+
+    send_to_deamon(request);
+}
+
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Uso: %s <comando> [opções]\n", argv[0]);
@@ -133,18 +144,27 @@ int main(int argc, char *argv[]) {
 
     if (strcmp(argv[1], "criar") == 0 && argc == 3) {
         criar_grupo(argv[2], request);
-    } else if (strcmp(argv[1], "remover") == 0) {
+    } 
+    else if (strcmp(argv[1], "remover") == 0) {
         remover_grupo(argv[2], request);
-    } else if (strcmp(argv[1], "listar") == 0) {
+    } 
+    else if (strcmp(argv[1], "listar") == 0) {
         listar_membros(argv[2], request);
-    } else if (strcmp(argv[1], "adicionar") == 0 && argc == 4) {
+    } 
+    else if (strcmp(argv[1], "adicionar") == 0 && argc == 4) {
         adicionar_usuario(argv[2], argv[3], request);
-    } else if (strcmp(argv[1], "remover-user") == 0 && argc == 4) {
+    } 
+    else if (strcmp(argv[1], "remover-user") == 0 && argc == 4) {
         remover_usuario(argv[2], argv[3], request);
-    } else {
+    } 
+    else if (strcmp(argv[1], "enviar") == 0 && argc == 4) {
+        enviar_mensagem(argv[2], argv[3], request);
+    }    
+    else {
         fprintf(stderr, "Comando inválido ou argumentos incorretos.\n");
         return EXIT_FAILURE;
     }
+    
 
     return EXIT_SUCCESS;
 }

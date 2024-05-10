@@ -19,13 +19,6 @@
 #include "../include/struct.h"
 #include "../include/message_commands.h"
 
-struct FileInfo {
-    char fileName[128];
-    char name[64];  // nome para onde foi enviado
-    char nameSender[64]; // nome de quem enviou
-    int id, day, month, year, hour, minute, second, tam, read, nReplys, isReply;  // isReply é o 0 caso não seja e caso seja é o id da mensagem a que respondeu
-};
-
 void parseFileName(char *filename, struct FileInfo *info) {
     strncpy(info->fileName, filename, 128);
     sscanf(filename, "%d;%[^;];%[^;];%02d-%02d-%04d|%02d:%02d:%02d;%d;%d;%d;%d", &info->id, info->name, info->nameSender, &info->day, &info->month, &info->year, &info->hour, &info->minute, &info->second, &info->tam, &info->read, &info->nReplys, &info->isReply);

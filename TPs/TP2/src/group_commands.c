@@ -14,6 +14,7 @@
 #include <grp.h> 
 
 #include "../include/struct.h"
+#include "../include/message_commands.h"
 
 // #define bin "/home/rui/Desktop/2324-G31/TPs/TP2/bin"
 #define bin "//home/nuno/SSI/2324-G31/TPs/TP2/bin"
@@ -431,4 +432,58 @@ void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int p
 
     syslog(LOG_NOTICE, "Group members are: %s", buffer);
     returnListToClient(pid, buffer);
+}
+
+int user_in_group(const char *user, const struct group *grp) {
+    if (!grp) return 0;
+    for (int i = 0; grp->gr_mem[i] != NULL; i++) {
+        if (strcmp(grp->gr_mem[i], user) == 0) {
+            return 1; // user found in group
+        }
+    }
+    return 0;
+}
+
+void enviar_mensagem_grupo(char *user, char *group, char *msg, char *groupsFolderName) {
+    char group_folder_path[256];
+    snprintf(group_folder_path, sizeof(group_folder_path), "%s/%s", groupsFolderName, group);
+
+    struct group *grp = getgrnam(group);
+    if (!grp) {
+        syslog(LOG_ERR, "Group %s not found", group);
+        return;
+    }
+
+    if (!user_in_group(user, grp)) {
+        syslog(LOG_ERR, "User %s does not belong to the group %s", user, group);
+        return;
+    }
+
+    struct stat st;
+    if (stat(group_folder_path, &st) == -1) {
+        syslog(LOG_ERR, "Folder does not exist: %s", group_folder_path);
+        return;
+    }
+
+    char timestamp[20];
+    generate_timestamp(timestamp);
+
+    int tam = strlen(msg);
+    int id = getHighestID(group_folder_path);
+    char fileName[512];
+    snprintf(fileName, sizeof(fileName), "%s/%d;%s;%s;%s;%d;0;0;0;0.txt", group_folder_path, id + 1, group, user, timestamp, tam);
+
+    int file = open(fileName, O_CREAT | O_WRONLY | O_TRUNC, 0644);
+    if (file < 0) {
+        syslog(LOG_ERR, "Error opening file '%s': %s", fileName, strerror(errno));
+        return;
+    }
+
+    if (write(file, msg, tam) != tam) {
+        syslog(LOG_ERR, "Error writting the message in file'%s'", fileName);
+    }
+
+    close(file);
+
+    syslog(LOG_NOTICE, "Message written to group %s in file: %s", group, fileName);
 }
