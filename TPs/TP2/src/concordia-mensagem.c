@@ -58,7 +58,7 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
 void ler_mensagem(int mid, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "ler");
-    request->all_mid = mid;
+    request->all_mid = mid-1;
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
@@ -69,7 +69,7 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
 void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "responder");
-    request->all_mid = mid;
+    request->all_mid = mid-1;
     snprintf(request->msg, MSG_SIZE, "%s", msg);
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
@@ -83,7 +83,7 @@ void remover_mensagem(int mid, ConcordiaRequest *request) {
 
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "remover");
-    request->all_mid = mid;
+    request->all_mid = mid-1;
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
