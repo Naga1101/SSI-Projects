@@ -15,7 +15,8 @@
 
 #include "../include/struct.h"
 
-#define bin "/home/rui/Desktop/2324-G31/TPs/TP2/bin"
+// #define bin "/home/rui/Desktop/2324-G31/TPs/TP2/bin"
+#define bin "//home/nuno/SSI/2324-G31/TPs/TP2/bin"
 
 int add_user_to_system_group(const char *user_to_add, const char *group) {
     pid_t pid;

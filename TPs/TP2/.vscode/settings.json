@@ -1,7 +1,0 @@
-{
-    "files.associations": {
-        "stdio.h": "c",
-        "command_handler.h": "c",
-        "group_commands.h": "c"
-    }
-}
