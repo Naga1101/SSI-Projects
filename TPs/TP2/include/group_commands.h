@@ -1,6 +1,9 @@
 #ifndef GROUP_COMMANDS_H
 #define GROUP_COMMANDS_H
 
+// #define bin "/home/rui/Desktop/2324-G31/TPs/TP2/bin"
+#define bin "/home/nuno/SSI/2324-G31/TPs/TP2/bin"
+
 void create_group (char *user, char *group, char* dirPath);
 void remove_group(char *user, char *group, char *groupFolderPath);
 void add_user_to_group(char *user, char *grupo, char *user_to_add, char *groupsFolderName);
