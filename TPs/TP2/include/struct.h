@@ -3,7 +3,7 @@
 
 #define FIFO "/tmp/concordia_fifo"
 #define MSG_SIZE 512
-#define COMMAND_SIZE 10
+#define COMMAND_SIZE 16
 #define usersize 16
 
 typedef enum{
@@ -14,11 +14,12 @@ typedef enum{
 
 typedef struct {
     FLAG flag;
-    char command[10];
+    char command[17];
     char user[16];
     char dest[16];
     char msg[MSG_SIZE];
     int all_mid;
+    int pid;
 } ConcordiaRequest;
 
 #endif /* STRUCTS_H */

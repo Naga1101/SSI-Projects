@@ -11,13 +11,21 @@
 
 // grep -a 'concordia_daemon' /var/log/syslog
 // ps -ef 
+// pkill -f ./daemon
+// sudo truncate -s 0 /var/log/syslog
 
 #include "../include/struct.h"
 #include "../include/command_handler.h"
 
+/*
 #define mainFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages"
 #define usersFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/users"
 #define groupsFolderName "/home/nuno/SSI/2324-G31/TPs/TP2/messages/groups"
+*/
+
+#define mainFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages"
+#define usersFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages/users"
+#define groupsFolderName "/home/rui/Desktop/2324-G31/TPs/TP2/messages/groups"
 
 
 void skeleton_daemon() {

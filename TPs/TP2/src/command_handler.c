@@ -10,7 +10,7 @@
 
 #include "../include/command_handler.h"
 #include "../include/message_commands.h"
-// #include "../include/group_commands.h"
+#include "../include/group_commands.h"
 #include "../include/user_commands.h"
 
 void handle_user_message(ConcordiaRequest request, char* usersFolderName){
@@ -43,18 +43,23 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName){
 void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
     syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
     if (strcmp(request.command, "criar") == 0) {
+        create_group(request.user, request.dest, groupsFolderName);
         printf("Handling criar command\n");
 
     } else if (strcmp(request.command, "remover") == 0) {
+        remove_group(request.user, request.dest, groupsFolderName);
         printf("Handling remover command\n");
 
     } else if (strcmp(request.command, "listar") == 0) {
+        listar_membros_grupo(request.user, request.dest, groupsFolderName, request.pid);
         printf("Handling listar command\n");
 
     } else if (strcmp(request.command, "adicionar") == 0) {
+        add_user_to_group(request.user, request.dest, request.msg, groupsFolderName);
         printf("Handling adicionar command\n");
 
-    } else if (strcmp(request.command, "remover-usuario") == 0) {
+    } else if (strcmp(request.command, "remover-user") == 0) {
+        remove_user_from_group(request.user, request.dest, request.msg, groupsFolderName);
         printf("Handling remover-usuario command\n");
 
     } else {
