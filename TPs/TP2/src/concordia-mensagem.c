@@ -51,8 +51,32 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
+    char fifoName[12];
+    sprintf(fifoName, "fifo_%d", getpid());
+
+    printf("fifoName %s", fifoName);
+
+    if (mkfifo(fifoName, 0660) == -1) {
+        perror("Error creating return FIFO \n");
+    }
+
     printf("Listando mensagens%s\n", all ? " (todas)" : "");
     send_to_deamon(request);
+
+    int fd2 = open(fifoName, O_RDONLY);
+    if(fd2 == -1){
+        perror("Error opening FIFO");
+        return;
+    }
+
+    ssize_t bytes_read;
+    char databuffer[MSG_SIZE];
+
+    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
+        printf("%s\n", databuffer);
+    }
+    
+    unlink(fd2);
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {
@@ -62,8 +86,32 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
+    char fifoName[12];
+    sprintf(fifoName, "fifo_%d", getpid());
+
+    printf("fifoName %s", fifoName);
+
+    if (mkfifo(fifoName, 0660) == -1) {
+        perror("Error creating return FIFO \n");
+    }
+
     printf("Lendo mensagem %d\n", mid);
     send_to_deamon(request);
+
+    int fd2 = open(fifoName, O_RDONLY);
+    if(fd2 == -1){
+        perror("Error opening FIFO");
+        return;
+    }
+
+    ssize_t bytes_read;
+    char databuffer[MSG_SIZE];
+
+    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
+        printf("%s\n", databuffer);
+    }
+
+    unlink(fd2);
 }
 
 void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
@@ -79,8 +127,6 @@ void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
 }
 
 void remover_mensagem(int mid, ConcordiaRequest *request) {
-
-
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "remover");
     request->all_mid = mid-1;
@@ -105,6 +151,7 @@ int main(int argc, char *argv[]) {
     }
 
     request->flag = MENSAGEM;
+    request->pid = getpid();
 
     if (strcmp(argv[1], "enviar") == 0 && argc == 4) {
         enviar_mensagem(argv[2], argv[3], request);

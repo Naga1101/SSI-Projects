@@ -16,5 +16,6 @@ int compareFileInfo(const void *a, const void *b);
 int getHighestID(const char *userFolderPath);
 void sort_files(char *folderPath, struct FileInfo sortedFiles[]);
 void generate_timestamp(char *timestamp);
+void escreverLista(struct FileInfo sortedFiles[], int numFiles, char msg[]);
 
 #endif 

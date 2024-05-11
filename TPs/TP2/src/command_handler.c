@@ -14,7 +14,7 @@
 #include "../include/user_commands.h"
 
 void handle_user_message(ConcordiaRequest request, char* usersFolderName){
-    syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
+    syslog(LOG_NOTICE, "Handler da flag Command: %s\n", request.command);
     
     if (strcmp(request.command, "enviar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag Dest: %s\n", request.dest);
@@ -23,6 +23,7 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName){
 
     } else if (strcmp(request.command, "listar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
+        listar_message(request, usersFolderName);
 
     } else if (strcmp(request.command, "ler") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);

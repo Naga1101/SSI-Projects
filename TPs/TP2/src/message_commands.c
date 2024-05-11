@@ -18,7 +18,7 @@
 
 #include "../include/struct.h"
 #include "../include/files_struct.h"
-#include "../include/message_commands.h"
+#include "../include/group_commands.h"
 
 void enviar_message(ConcordiaRequest request, char* folderPath){
     // syslog(LOG_NOTICE, "Entrei enviar: %s\n", request.dest);
@@ -128,12 +128,12 @@ void ler_message(ConcordiaRequest request, char* folderPath){
     syslog(LOG_NOTICE, "Message read: %s\n", msg);
 
     if(sortedFiles[i].read == 0){
-        char updateName[264];                                                                                          //para onde foi enviado, quem enviou
-        snprintf(updateName, sizeof(updateName), "%s/%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", userFolderPath, sortedFiles[i].name, 
-        sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, 
-        sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
+        char updateName[264];                                                                                         
+        snprintf(updateName, sizeof(updateName), "%s/%d;%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", userFolderPath, sortedFiles[i].id, sortedFiles[i].name, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
         rename(fileName, updateName);
     }
+
+    returnListToClient(request.pid, msg);
 }
 
 //TODO ajustar para responder a grupos tambem visto que tem de descobrir para quem é que é a mensagem atraves do indice
@@ -232,4 +232,33 @@ void remover_message(ConcordiaRequest request, char* folderPath){
     } else {
         syslog(LOG_PERROR, "Error removing file %s\n", fileRemove);
     }
+}
+
+void listar_message(ConcordiaRequest request, char* folderPath){
+    syslog(LOG_NOTICE, "Entrei listar: %s\n", request.user);
+
+    char userFolderPath[100];
+    snprintf(userFolderPath, sizeof(userFolderPath), "%s/%s", folderPath, request.user); 
+    // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
+    struct stat st;
+    if (stat(userFolderPath, &st) == -1) {
+        syslog(LOG_ERR, "Folder doesnt exist: %s\n", userFolderPath);
+        exit(EXIT_FAILURE);
+    }
+
+    int numFiles = count_files(userFolderPath);
+    struct FileInfo sortedFiles[numFiles];
+    sort_files(userFolderPath, sortedFiles);
+
+    if (sortedFiles == NULL) {
+        syslog(LOG_ERR, "Error sorting files.\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char msg[512];
+    escreverLista(sortedFiles, numFiles, msg);
+
+    syslog(LOG_NOTICE, "Lista de files: '\n'%s\n", msg);
+
+    returnListToClient(request.pid, msg);
 }

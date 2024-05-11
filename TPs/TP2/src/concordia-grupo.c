@@ -97,6 +97,8 @@ void listar_membros(char *grupo, ConcordiaRequest *request) {
     if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
         printf("Group members: %s\n", databuffer);
     }
+    
+    unlink(fd2);
 }
 
 void adicionar_usuario(char *grupo, char *uid, ConcordiaRequest *request) {
@@ -163,6 +165,8 @@ void ler_mensagem(char *group_dest, char *id, ConcordiaRequest *request){
     if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
         printf("Group members: %s\n", databuffer);
     }
+
+    unlink(fd2);
 }
 
 void remover_mensagem(char *group_dest, char *mensagem, ConcordiaRequest *request){

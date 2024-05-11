@@ -367,7 +367,7 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
 
 void returnListToClient(int pid, char *message){
     char fifoName[55];
-    sprintf(fifoName, "/home/rui/Desktop/2324-G31/TPs/TP2/bin/fifo_%d", pid);
+    sprintf(fifoName, "/home/nuno/SSI/2324-G31/TPs/TP2/bin/fifo_%d", pid);
 
     syslog(LOG_NOTICE, "fifoname: %s", fifoName);
 
@@ -379,7 +379,7 @@ void returnListToClient(int pid, char *message){
     syslog(LOG_NOTICE, "%s", message);
 
     // enviar lista
-    if (write(fd, message, strlen(message)) == -1) {
+    if (write(fd, message, strlen(message)+1) == -1) {
         perror("Error writing to FIFO");
     }
     close(fd);

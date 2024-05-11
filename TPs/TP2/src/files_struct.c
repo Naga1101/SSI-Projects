@@ -20,6 +20,8 @@
 #include "../include/files_struct.h"
 #include "../include/message_commands.h"
 
+#define MAX_CHAR_ARRAY_LENGTH 512
+
 void parseFileName(char *filename, struct FileInfo *info) {
     strncpy(info->fileName, filename, 128);
     sscanf(filename, "%d;%[^;];%[^;];%02d-%02d-%04d|%02d:%02d:%02d;%d;%d;%d;%d", &info->id, info->name, info->nameSender, &info->day, &info->month, &info->year, &info->hour, &info->minute, &info->second, &info->tam, &info->read, &info->nReplys, &info->isReply);
@@ -141,4 +143,19 @@ void generate_timestamp(char *timestamp) {
     struct tm *tm_info;
     tm_info = localtime(&now);
     strftime(timestamp, 20, "%d-%m-%Y|%H:%M:%S", tm_info);
+}
+
+void escreverLista(struct FileInfo sortedFiles[], int numFiles, char msg[]) {
+    int offset = 0;
+    offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
+                        "Index | From |      Received      | Status | is Reply | Size of Message\n");
+    for (int i = 0; i < numFiles; i++) {
+        offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
+                           "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d\n",
+                           i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
+                           sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
+                           (sortedFiles[i].read == 1) ? "Read" : "Not Read",
+                           (sortedFiles[i].isReply != 0) ? "Yes" : "No",
+                           sortedFiles[i].tam);
+    }
 }

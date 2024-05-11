@@ -38,6 +38,7 @@ void ativar_usuario(ConcordiaRequest *request) {
     snprintf(request->command, COMMAND_SIZE, "ativar");
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
+    printf("%s'\n'", user);
 
     send_to_deamon(request);
 }

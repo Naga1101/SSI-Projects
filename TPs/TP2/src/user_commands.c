@@ -31,18 +31,18 @@ void activate_user(char* user, char* folderPath){
 
     uid_t uid = pwd->pw_uid;
 
-    if (mkdir(userFolderPath, 0500) == -1) { // Adjusted permission to grant group write access
+    if (mkdir(userFolderPath, 0750) == -1) { // Adjusted permission to grant group write access
         syslog(LOG_ERR, "Failed to create the directory: %s and the path is: %s\n", strerror(errno), userFolderPath);
         exit(EXIT_FAILURE);
     }
 
-    if (chown(userFolderPath, uid, -1) == -1) {
+    if (chown(userFolderPath, 0, uid) == -1) {
         syslog(LOG_ERR, "Failed to change ownership of the directory: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     // Grant group read, write, and execute permissions
-    if (chmod(userFolderPath, 0570) == -1) {
+    if (chmod(userFolderPath, 0750) == -1) {
         syslog(LOG_ERR, "Failed to change permissions of the directory: %s\n", strerror(errno));
         exit(EXIT_FAILURE);
     }
