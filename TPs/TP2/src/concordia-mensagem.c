@@ -47,6 +47,7 @@ void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
 void listar_mensagens(int all, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "listar");
+    printf("Flag ativada:%d'\n'", all);
     request->all_mid = all;
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);

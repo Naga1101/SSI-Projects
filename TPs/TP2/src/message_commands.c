@@ -308,7 +308,7 @@ void listar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     // syslog(LOG_NOTICE, "Antes do listar\n");
 
     char msg[512];
-    escreverLista(sortedFiles, numFiles, request.user, msg);
+    escreverLista(sortedFiles, numFiles, request.all_mid, request.user, msg);
 
     syslog(LOG_NOTICE, "Lista de files: '\n'%s\n", msg);
 

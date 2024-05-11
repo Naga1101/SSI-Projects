@@ -59,7 +59,11 @@ int compareFileInfo(const void *a, const void *b) {
     struct FileInfo *fileA = (struct FileInfo *)a;
     struct FileInfo *fileB = (struct FileInfo *)b;
 
-    // Compare dates and times
+    // Compare the "read" flag first
+    if (fileA->read != fileB->read)
+        return fileA->read - fileB->read;  // Reverse order to push 0s to the front
+
+    // If "read" flag is the same, compare dates and times
     if (fileA->year != fileB->year)
         return fileA->year - fileB->year;
     if (fileA->month != fileB->month)
@@ -73,6 +77,7 @@ int compareFileInfo(const void *a, const void *b) {
     if (fileA->second != fileB->second)
         return fileA->second - fileB->second;
 
+    // If all are equal, compare file names
     return strcmp(fileA->name, fileB->name);
 }
 
@@ -321,18 +326,33 @@ void generate_timestamp(char *timestamp) {
 }
 
 
-void escreverLista(struct FileInfo sortedFiles[], int numFiles, char *user, char msg[]) {
+void escreverLista(struct FileInfo sortedFiles[], int numFiles, int flagAll, char *user, char msg[]) {
     int offset = 0;
     offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
                         "Index | From |      Received      | Status | is Reply | Size of Message |  Via  |\n");
-    for (int i = 0; i < numFiles; i++) {
-        // syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
-        offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
-                           "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
-                           i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
-                           sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
-                           (sortedFiles[i].read == 1) ? "Read" : "Not Read",
-                           (sortedFiles[i].isReply != 0) ? "Yes" : "No",
-                           sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
+
+    if(flagAll){
+        for (int i = 0; i < numFiles; i++) {
+            // syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
+            offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
+                            "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
+                            i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
+                            sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
+                            (sortedFiles[i].read == 1) ? "Read" : "Not Read",
+                            (sortedFiles[i].isReply != 0) ? "Yes" : "No",
+                            sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
+        }
+    }else{
+        for (int i = 0; i < numFiles; i++) {
+            if(sortedFiles[i].read == 1) break;
+            // syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
+            offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
+                            "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
+                            i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
+                            sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
+                            (sortedFiles[i].read == 1) ? "Read" : "Not Read",
+                            (sortedFiles[i].isReply != 0) ? "Yes" : "No",
+                            sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
+        }
     }
 }
