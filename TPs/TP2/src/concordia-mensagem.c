@@ -52,8 +52,8 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    char fifoName[12];
-    sprintf(fifoName, "fifo_%d", getpid());
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
 
     printf("fifoName %s", fifoName);
 
@@ -87,8 +87,8 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    char fifoName[12];
-    sprintf(fifoName, "fifo_%d", getpid());
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
 
     printf("fifoName %s", fifoName);
 

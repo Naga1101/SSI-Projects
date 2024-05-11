@@ -2,7 +2,23 @@ CC = gcc
 CFLAGS = -Wall -g
 LDFLAGS =
 
+PREFIX = /usr/local
+BINDIR = $(PREFIX)/bin
+
 all: folders server concordia-mensagem concordia-grupo concordia-user
+
+install: concordia-mensagem concordia-grupo concordia-user
+	@echo Installing executables to $(BINDIR)
+	@mkdir -p $(BINDIR)
+	@cp bin/concordia-mensagem $(BINDIR)/concordia-mensagem
+	@cp bin/concordia-grupo $(BINDIR)/concordia-grupo
+	@cp bin/concordia-user $(BINDIR)/concordia-user
+	@chmod 755 $(BINDIR)/concordia-mensagem $(BINDIR)/concordia-grupo $(BINDIR)/concordia-user
+	@echo Installation complete.
+	@echo "Creating FIFO directory..."
+	@mkdir -p /var/lib/concordia/fifos
+	@chmod 1777 /var/lib/concordia/fifos
+	@echo "Installation complete."
 
 server: bin/daemon
 

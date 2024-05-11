@@ -14,8 +14,8 @@
 #include "../include/utils.h"
 
 void returnListToClient(int pid, char *message){
-    char fifoName[55];
-    sprintf(fifoName, "/home/nuno/SSI/2324-G31/TPs/TP2/bin/fifo_%d", pid);
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", pid);
 
     syslog(LOG_NOTICE, "fifoname: %s", fifoName);
 

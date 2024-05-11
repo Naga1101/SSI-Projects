@@ -10,9 +10,6 @@ void add_user_to_group(char *user, char *grupo, char *user_to_add, char *groupsF
 void remove_user_from_group(char *user, char *group, char *user_to_remove, char *groupsFolderName);
 void listar_membros_grupo(char *user, char *dest, char *groupsFolderName, int pid);
 void returnListToClient(int pid, char *message);
-void enviar_mensagem_grupo(char *user, char *dest, char *msg, char *groupsFolderName);
-void ler_mensagem_grupo(ConcordiaRequest request, char* folderPath);
-void responder_mensagem_grupo(ConcordiaRequest request, char* groupsFolderPath);
-void remove_group_message(ConcordiaRequest request, char* folderPath);
+void exec_setfacl(char *path, char *group);
 
 #endif

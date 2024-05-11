@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "pwd.h": "c",
-        "utils.h": "c"
+        "utils.h": "c",
+        "struct.h": "c"
     }
 }

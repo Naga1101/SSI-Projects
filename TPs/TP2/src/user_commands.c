@@ -53,7 +53,7 @@ int verify_user(char *path, uid_t uid) {
     }
 
     // verificar se tem read perms
-    if (statbuf.st_gid == getgid() && (statbuf.st_mode & S_IRGRP)) {
+    if ((statbuf.st_mode & S_IRGRP)) {
         return 1;
     }
 

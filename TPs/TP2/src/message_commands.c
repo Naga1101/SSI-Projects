@@ -25,7 +25,7 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     // char dest[16];
     // strncpy(dest, request.dest, 16);
     int flagG = 1;
-    char** foldersWAccess;
+    char **foldersWAccess;
     int numDirs;
 
     numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
@@ -82,6 +82,10 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
 
     close(file);
     
+    if(flagG == 1){
+        exec_setfacl(folderPath, request.dest);
+    }
+
     syslog(LOG_NOTICE, "Message written to %s in file: %s\n", request.dest, fileName);
 }
 
@@ -90,6 +94,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
     syslog(LOG_NOTICE, "Entrei ler: %s\n", request.user);
     char** foldersWAccess;
     int numDirs;
+    int groupFlag = 0;
 
     numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
 
@@ -97,7 +102,6 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
     numFiles = count_Allfiles(foldersWAccess, numDirs);
 
     struct FileInfo sortedFiles[numFiles];
-
 
     sort_Allfiles(foldersWAccess, numDirs, sortedFiles);
     free(foldersWAccess);
@@ -123,6 +127,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
 
     char folderPath[128];
     if (strcmp(sortedFiles[i].name, request.user) != 0) {
+        groupFlag = 1; 
         strcpy(folderPath, gFolderPath);
     } else {
         strcpy(folderPath, uFolderPath);
@@ -155,6 +160,19 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
     close(file);
 
     syslog(LOG_NOTICE, "Message read: %s\n", msg);
+
+    if (groupFlag == 1) {
+        file = open(fileName, O_WRONLY | O_APPEND);
+        if (file < 0) {
+            syslog(LOG_ERR, "Error opening file '%s': %s\n", fileName, strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        char userReading[128];
+        snprintf(userReading, sizeof(userReading), ";%s", request.user);
+        write(file, userReading, strlen(userReading));
+        close(file);
+    }
 
     if(sortedFiles[i].read == 0){
         char updateName[512];                                                                                         

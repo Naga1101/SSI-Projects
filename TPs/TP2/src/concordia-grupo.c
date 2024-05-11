@@ -35,7 +35,6 @@ char* obter_usuario_atual() {
     return usuario;
 }
 
-
 void enviar_msg_grupo(char *grupo, char *msg, ConcordiaRequest *request) {
     printf("Enviando mensagem ao grupo %s\n", grupo);
 
@@ -74,8 +73,8 @@ void listar_membros(char *grupo, ConcordiaRequest *request) {
     snprintf(request->user, usersize, "%s", obter_usuario_atual());
     snprintf(request->dest, usersize, "%s", grupo);
 
-    char fifoName[12];
-    sprintf(fifoName, "fifo_%d", getpid());
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
 
     printf("fifoName %s", fifoName);
 

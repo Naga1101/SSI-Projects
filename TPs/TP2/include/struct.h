@@ -1,7 +1,8 @@
 #ifndef STRUCTS_H
 #define STRUCTS_H
 
-#define FIFO "/tmp/concordia_fifo"
+#define FIFO "/usr/share/concordiaINBOX/concordia_fifo"
+
 #define MSG_SIZE 512
 #define COMMAND_SIZE 16
 #define usersize 16
