@@ -123,64 +123,6 @@ void remover_usuario(char *uid, char *grupo, ConcordiaRequest *request) {
     send_to_deamon(request);
 }
 
-void enviar_mensagem(char *group_dest, char *mensagem, ConcordiaRequest *request){
-    printf("enviando mensagem ao grupo %s\n", group_dest);
-
-    snprintf(request->command, COMMAND_SIZE, "enviar");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", group_dest);
-    snprintf(request->msg, usersize, "%s", mensagem);
-
-    send_to_deamon(request);
-}
-
-void ler_mensagem(char *group_dest, char *id, ConcordiaRequest *request){
-    printf("enviando mensagem ao grupo %s\n", group_dest);
-
-    snprintf(request->command, COMMAND_SIZE, "ler");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", group_dest);
-    snprintf(request->msg, usersize, "%s", id);
-
-    char fifoName[12];
-    sprintf(fifoName, "fifo_%d", getpid());
-
-    printf("fifoName %s", fifoName);
-
-    if (mkfifo(fifoName, 0660) == -1) {
-        perror("Error creating return FIFO \n");
-    }
-
-    send_to_deamon(request);
-
-    int fd2 = open(fifoName, O_RDONLY);
-    if(fd2 == -1){
-        perror("Error opening FIFO");
-        return;
-    }
-
-    ssize_t bytes_read;
-    char databuffer[MSG_SIZE];
-
-    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
-        printf("Group members: %s\n", databuffer);
-    }
-
-    unlink(fifoName);
-}
-
-void remover_mensagem(char *group_dest, char *mensagem, ConcordiaRequest *request){
-    printf("removendo mensagem %s do grupo %s\n", mensagem, group_dest);
-
-    snprintf(request->command, COMMAND_SIZE, "remover-msg");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", group_dest);
-    snprintf(request->msg, usersize, "%s", mensagem);
-
-    send_to_deamon(request);
-}
-
-
 int main(int argc, char *argv[]) {
     if (argc < 2) {
         fprintf(stderr, "Uso: %s <comando> [opções]\n", argv[0]);
@@ -206,15 +148,6 @@ int main(int argc, char *argv[]) {
     else if (strcmp(argv[1], "remover-user") == 0 && argc == 4) {
         remover_usuario(argv[2], argv[3], request);
     } 
-    else if (strcmp(argv[1], "enviar") == 0 && argc == 4) {
-        enviar_mensagem(argv[2], argv[3], request);
-    } 
-    else if (strcmp(argv[1], "ler") == 0 && argc == 4) {
-        ler_mensagem(argv[2], argv[3], request);
-    }
-    else if (strcmp(argv[1], "remover-msg") == 0 && argc == 4){
-        remover_mensagem(argv[2], argv[3], request);
-    }  
     else {
         fprintf(stderr, "Comando inválido ou argumentos incorretos.\n");
         return EXIT_FAILURE;

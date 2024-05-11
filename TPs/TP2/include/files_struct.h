@@ -15,7 +15,10 @@ int count_files(const char *folderPath);
 int compareFileInfo(const void *a, const void *b);
 int getHighestID(const char *userFolderPath);
 void sort_files(char *folderPath, struct FileInfo sortedFiles[]);
+void sort_Allfiles(char *folderPaths[], int numFolders, struct FileInfo sortedFiles[]);
+int count_Allfiles(char *folderPaths[], int numFolders);
+int getUserGroups(char* uFolderPath, char* gFolderPath, char* username, char*** groupNames);
 void generate_timestamp(char *timestamp);
-void escreverLista(struct FileInfo sortedFiles[], int numFiles, char msg[]);
+void escreverLista(struct FileInfo sortedFiles[], int numFiles, char *user, char msg[]);
 
 #endif 

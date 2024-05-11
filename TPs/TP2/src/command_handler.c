@@ -13,7 +13,7 @@
 #include "../include/group_commands.h"
 #include "../include/user_commands.h"
 
-void handle_user_message(ConcordiaRequest request, char* usersFolderName){
+void handle_user_message(ConcordiaRequest request, char* usersFolderName, char* groupsFolderPath){
     syslog(LOG_NOTICE, "Handler da flag Command: %s\n", request.command);
     
     if (strcmp(request.command, "enviar") == 0) {
@@ -23,21 +23,21 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName){
 
     } else if (strcmp(request.command, "listar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
-        listar_message(request, usersFolderName);
+        listar_message(request, usersFolderName, groupsFolderPath);
 
     } else if (strcmp(request.command, "ler") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
-        ler_message(request, usersFolderName);
+        ler_message(request, usersFolderName, groupsFolderPath);
 
     } else if (strcmp(request.command, "responder") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
         syslog(LOG_NOTICE, "Handler da flag Msg: %s\n", request.msg);
-        responder_message(request, usersFolderName);
+        responder_message(request, usersFolderName, groupsFolderPath);
 
     } else if (strcmp(request.command, "remover") == 0) {
         syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);
-        remover_message(request, usersFolderName);
+        remover_message(request, usersFolderName, groupsFolderPath);
 
     } else {
         printf("Unknown command: %s\n", request.command);
@@ -66,16 +66,7 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
         remove_user_from_group(request.user, request.dest, request.msg, groupsFolderName);
         printf("Handling remover-usuario command\n");
 
-    } else if (strcmp(request.command, "enviar") == 0) {
-        enviar_mensagem_grupo(request.user, request.dest, request.msg, groupsFolderName);
-    } 
-    else if(strcmp(request.command, "ler") == 0){
-        ler_mensagem_grupo(request, groupsFolderName);
-    }
-    else if(strcmp(request.command, "remover-msg") == 0){
-        remove_group_message(request, groupsFolderName);
-    }
-    else {
+    } else {
         printf("Unknown command: %s\n", request.command);
     }
 }

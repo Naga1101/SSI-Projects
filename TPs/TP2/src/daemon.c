@@ -90,7 +90,7 @@ void process_incoming_messages(int fifo_fd) {
             {
             case MENSAGEM:
                 syslog(LOG_NOTICE, "MENSAGEM");
-                handle_user_message(request, usersFolderName);
+                handle_user_message(request, usersFolderName, groupsFolderName);
                 break;
             case GRUPO:
                 syslog(LOG_NOTICE, "GRUPO");
@@ -110,14 +110,6 @@ void process_incoming_messages(int fifo_fd) {
         }
         exit(EXIT_SUCCESS);
     }
-}
-
-void deliver_messages() {
-    // Implemente a lógica de entrega de mensagens
-}
-
-void store_message(const char *message) {
-    // Implemente a lógica de armazenamento de mensagens baseada no tipo
 }
 
 void signal_handler(int sig) {
@@ -175,7 +167,6 @@ int main() {
     // Loop principal do daemon
     while (1) {
         process_incoming_messages(fd);
-        deliver_messages();
         sleep(1);  // Substitua por uma espera mais eficiente se necessário
     }
 
