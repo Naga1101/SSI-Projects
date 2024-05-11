@@ -24,6 +24,7 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     // syslog(LOG_NOTICE, "Entrei enviar: %s\n", request.dest);
     // char dest[16];
     // strncpy(dest, request.dest, 16);
+    int flagG = 1;
     char** foldersWAccess;
     int numDirs;
 
@@ -33,6 +34,7 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     syslog(LOG_NOTICE, "Antes do if: %s\n", folderPath);
 
     if(!folderPath ){
+        flagG = 0;
         folderPath = malloc(strlen(uFolderPath) + strlen(request.dest) + 2); 
         if (folderPath != NULL) {
         snprintf(folderPath, strlen(uFolderPath) + strlen(request.dest) + 2, "%s/%s", uFolderPath, request.dest);
