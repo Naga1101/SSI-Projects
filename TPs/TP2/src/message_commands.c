@@ -30,7 +30,18 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
      
     char *folderPath = selectDestino(foldersWAccess, numDirs, request.dest);
-    syslog(LOG_NOTICE, "Entrei enviar: %s\n", folderPath);
+    syslog(LOG_NOTICE, "Antes do if: %s\n", folderPath);
+
+    if(!folderPath ){
+        folderPath = malloc(strlen(uFolderPath) + strlen(request.dest) + 2); 
+        if (folderPath != NULL) {
+        snprintf(folderPath, strlen(uFolderPath) + strlen(request.dest) + 2, "%s/%s", uFolderPath, request.dest);
+        } else {
+            syslog(LOG_ERR, "Memory allocation failed for folderPath\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+    syslog(LOG_NOTICE, "Dps: %s\n", folderPath);
     // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
 
     struct stat st;
