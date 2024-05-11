@@ -76,7 +76,7 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
         printf("%s\n", databuffer);
     }
     
-    unlink(fd2);
+    unlink(fifoName);
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {
@@ -111,7 +111,7 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
         printf("%s\n", databuffer);
     }
 
-    unlink(fd2);
+    unlink(fifoName);
 }
 
 void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {

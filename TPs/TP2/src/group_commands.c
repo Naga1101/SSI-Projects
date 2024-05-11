@@ -16,6 +16,7 @@
 #include "../include/struct.h"
 #include "../include/files_struct.h"
 #include "../include/message_commands.h"
+#include "../include/utils.h"
 
 int add_user_to_system_group(const char *user_to_add, const char *group) {
     pid_t pid;
@@ -123,50 +124,56 @@ int create_system_group(const char *group) {
     }
 }
 
+void exec_setfacl(char *path, char *group) {
+    pid_t pid;
+    pid = fork();
+    if (pid == 0) {
+        char cmd[1024];
+        snprintf(cmd, sizeof(cmd), "g:%s:rx,o::0", group);
+        execlp("setfacl", "setfacl", "-m", cmd, path, (char *) NULL);
+
+        syslog(LOG_ERR, "execlp failed to execute setfacl: %s", strerror(errno));
+        _exit(EXIT_FAILURE);
+    } else {
+        int status;
+        waitpid(pid, &status, 0);
+        if (status != 0) {
+            syslog(LOG_ERR, "setfacl command failed with status %d", status);
+        }
+    }
+}
+
+
 void create_group(char *user, char *group, char* groupFolderPath) {
     char FolderPath[256];
     char ownerFilePath[270];
-
     snprintf(FolderPath, sizeof(FolderPath), "%s/%s", groupFolderPath, group);
 
-    if (mkdir(FolderPath, 0775) == -1) {
-        syslog(LOG_ERR, "Failed to create the directory '%s': %s\n", FolderPath, strerror(errno));
-    }
-
-
-    struct passwd *pw;
-    struct group *grp;
-    //uid_t userID;
-    gid_t groupID;
-
-    grp = getgrnam(group);
-    if (!grp) {
-        if(create_system_group(group) != 0){
-            syslog(LOG_ERR, "Failed to create the group '%s': %s", group, strerror(errno));
-            return;
-        }
-        
-        // pegar na info do grupo
-        grp = getgrnam(group);
-        if (!grp) {
-            syslog(LOG_ERR, "Failed to refetch group info for '%s'", group);
-            return;
-        }
-    }
-    else{
-        syslog(LOG_ERR, "Group already exists");
-    }
-
-
-    groupID = grp->gr_gid;
-
-    pw = getpwnam(user);
-    if (!pw) {
-        syslog(LOG_ERR, "Failed to find user '%s': %s", user, strerror(errno));
+    if (mkdir(FolderPath, 0770) == -1) {
+        syslog(LOG_ERR, "Failed to create the directory '%s': %s", FolderPath, strerror(errno));
         return;
     }
 
-    //userID = pw->pw_uid;
+    if (create_system_group(group) != 0) {
+        syslog(LOG_ERR, "Failed to create the group '%s': %s", group, strerror(errno));
+        rmdir(FolderPath);
+        return;
+    }
+
+    struct group *grp = getgrnam(group);
+    if (!grp) {
+        syslog(LOG_ERR, "Failed to fetch group info for '%s'", group);
+        rmdir(FolderPath);
+        return;
+    }
+
+    gid_t groupID = grp->gr_gid;
+    struct passwd *pw = getpwnam(user);
+    if (!pw) {
+        syslog(LOG_ERR, "Failed to find user '%s'", user);
+        rmdir(FolderPath);
+        return;
+    }
 
     if (chown(FolderPath, 0, groupID) == -1) {
         syslog(LOG_ERR, "Failed to change owner or group of '%s': %s", FolderPath, strerror(errno));
@@ -174,14 +181,8 @@ void create_group(char *user, char *group, char* groupFolderPath) {
         return;
     }
 
-    // Set the directory permissions (Total para dono | read para group members)
-    if (chmod(FolderPath, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
-        syslog(LOG_ERR, "Failed to set permissions on '%s': %s", FolderPath, strerror(errno));
-        rmdir(FolderPath);
-        return;
-    }
+    exec_setfacl(FolderPath, group);
 
-    // Create and write the owner file
     snprintf(ownerFilePath, sizeof(ownerFilePath), "%s/owner", FolderPath);
     FILE *ownerFile = fopen(ownerFilePath, "w");
     if (!ownerFile) {
@@ -203,7 +204,7 @@ void create_group(char *user, char *group, char* groupFolderPath) {
         syslog(LOG_ERR, "Failed to change owner or group of owner file '%s': %s", ownerFilePath, strerror(errno));
     }
 
-    if (chmod(ownerFilePath, S_IRWXU | S_IRGRP | S_IXGRP) == -1) {
+    if (chmod(ownerFilePath, S_IRWXU) == -1) {
         syslog(LOG_ERR, "Failed to set permissions on owner file '%s': %s", ownerFilePath, strerror(errno));
     }
 
@@ -211,6 +212,8 @@ void create_group(char *user, char *group, char* groupFolderPath) {
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
         return;
     }
+
+    exec_setfacl(ownerFilePath, group);
 
     syslog(LOG_NOTICE, "Group '%s' created successfully with owner '%s'", group, user);
 }
@@ -244,61 +247,6 @@ int delete_system_group(const char *group) {
     }
 }
 
-static int remove_entry(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
-    int rv = remove(fpath);
-
-    if (rv)
-        perror(fpath);
-
-    return rv;
-}
-
-int remove_directory(const char *dir_path) {
-    return nftw(dir_path, remove_entry, 64, FTW_DEPTH | FTW_PHYS);
-}
-
-void remove_group(char *user, char *group, char *groupFolderPath){
-    char FolderPath[256];
-    char ownerFilePath[270];
-    char ownerName[32];
-
-    snprintf(FolderPath, sizeof(FolderPath), "%s/%s", groupFolderPath, group);
-    snprintf(ownerFilePath, sizeof(ownerFilePath), "%s/owner", FolderPath);
-
-    FILE *ownerFile = fopen(ownerFilePath, "r");
-    if (!ownerFile) {
-        syslog(LOG_ERR, "Failed to open owner file in '%s': %s", FolderPath, strerror(errno));
-        return;
-    }
-
-    if (fgets(ownerName, sizeof(ownerName), ownerFile) == NULL) {
-        syslog(LOG_ERR, "Failed to read owner file in '%s'", FolderPath);
-        fclose(ownerFile);
-        return;
-    }
-
-    fclose(ownerFile);
-
-    ownerName[strcspn(ownerName, "\n")] = 0;
-
-    if (strcmp(user, ownerName) != 0) {
-        syslog(LOG_ERR, "Unauthorized attempt to remove group '%s' by user '%s'", group, user);
-        return;
-    }
-    else{
-        syslog(LOG_NOTICE, "Owner verified, deleting group: %s\n", group);
-    }
-
-    if(remove_directory(FolderPath) != 0){
-        syslog(LOG_ERR, "Error removing group directory: %s", strerror(errno));
-    }
-
-    if (delete_system_group(group) != 0) {
-        syslog(LOG_ERR, "Failed to delete system group '%s'", group);
-        return;
-    }
-}
-
 
 int is_owner(const char *group_folder_path, const char *user) {
     char owner_file_path[256];
@@ -323,6 +271,29 @@ int is_owner(const char *group_folder_path, const char *user) {
     return strcmp(owner_name, user) == 0;
 }
 
+
+void remove_group(char *user, char *group, char *groupFolderPath) {
+    char folderPath[256];
+    snprintf(folderPath, sizeof(folderPath), "%s/%s", groupFolderPath, group);
+
+    if (!is_owner(folderPath, user)) {
+        syslog(LOG_ERR, "Unauthorized attempt to remove group '%s' by user '%s'", group, user);
+        return;
+    } else {
+        syslog(LOG_NOTICE, "Owner verified, deleting group: %s\n", group);
+    }
+
+    if (remove_directory(folderPath) != 0) {
+        syslog(LOG_ERR, "Error removing group directory '%s': %s", folderPath, strerror(errno));
+        return;
+    }
+
+    if (delete_system_group(group) != 0) {
+        syslog(LOG_ERR, "Failed to delete system group '%s'", group);
+        return;
+    }
+}
+
 void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsFolderName) {
     char group_folder_path[256];
     snprintf(group_folder_path, sizeof(group_folder_path), "%s/%s", groupsFolderName, group);
@@ -334,13 +305,6 @@ void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsF
 
     char cmd[512];
     snprintf(cmd, sizeof(cmd), "usermod -aG %s %s", group, user_to_add);
-
-    /*int status = system(cmd);
-    if (status != 0) {
-        syslog(LOG_ERR, "Failed to add user '%s' to group '%s': %s", user_to_add, group, strerror(errno));
-    } else {
-        syslog(LOG_NOTICE, "User '%s' added to group '%s' successfully", user_to_add, group);
-    }*/
 
     if (add_user_to_system_group(user_to_add, group) != 0) {
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
@@ -363,26 +327,6 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
     } else {
         syslog(LOG_NOTICE, "User '%s' removed from group '%s' successfully", user_to_remove, group);
     }
-}
-
-void returnListToClient(int pid, char *message){
-    char fifoName[55];
-    sprintf(fifoName, "/home/nuno/SSI/2324-G31/TPs/TP2/bin/fifo_%d", pid);
-
-    syslog(LOG_NOTICE, "fifoname: %s", fifoName);
-
-    int fd = open(fifoName, O_WRONLY);
-    if (fd == -1){
-        syslog(LOG_ERR, "Error opening return fifo: %s \n", strerror(errno));
-    }
-
-    syslog(LOG_NOTICE, "%s", message);
-
-    // enviar lista
-    if (write(fd, message, strlen(message)+1) == -1) {
-        perror("Error writing to FIFO");
-    }
-    close(fd);
 }
 
 void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int pid){
@@ -413,18 +357,10 @@ void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int p
         }
     }
 
-    //se nao pertencer
     if(!boolean){
         syslog(LOG_ERR, "User %s does not belong to the group %s", user, group);
         return;
     }
-
-    // isto verificava se o grupo primario do user da match ao grupo requested mas nao sei se é necessário
-    /*
-    if (pwd->pw_gid == grp->gr_gid) {
-        boolean = 1;
-    }
-    */
 
     char buffer[512];
     buffer[0] = '\0';
@@ -495,11 +431,7 @@ void enviar_mensagem_grupo(char *user, char *group, char *msg, char *groupsFolde
         syslog(LOG_ERR, "Failed to change group of the file '%s': %s", fileName, strerror(errno));
     }
 
-    // Set appropriate permissions for the file (read and write for owner, read for group)
-    if (chmod(fileName, S_IRUSR | S_IWUSR | S_IRGRP) == -1) {
-        syslog(LOG_ERR, "Failed to set permissions on the file '%s': %s", fileName, strerror(errno));
-    }
-
+    exec_setfacl(fileName, group);
 
     syslog(LOG_NOTICE, "Message written to group %s in file: %s", group, fileName);
 }
@@ -545,7 +477,7 @@ void ler_mensagem_grupo(ConcordiaRequest request, char* folderPath) {
         exit(EXIT_FAILURE);
     }
 
-    char msg[tam + 1];  // Allocating extra byte for null terminator
+    char msg[tam + 1];
     msg[tam] = '\0';
 
     read(file, msg, tam);
@@ -611,7 +543,9 @@ void responder_mensagem_grupo(ConcordiaRequest request, char* groupsFolderPath){
     
     syslog(LOG_NOTICE, "Reply written to group %s in file: %s\n", request.dest, fileName);
 
-    // Update the existing file to mark as replied
+    exec_setfacl(fileName, request.dest);
+
+    // Update para marcar como read;
     char updateName[630];
     char repliedFile[630];
     snprintf(repliedFile, sizeof(repliedFile), "%s/%s", groupFolderPath, sortedFiles[request.all_mid].fileName);

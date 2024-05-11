@@ -98,7 +98,7 @@ void listar_membros(char *grupo, ConcordiaRequest *request) {
         printf("Group members: %s\n", databuffer);
     }
     
-    unlink(fd2);
+    unlink(fifoName);
 }
 
 void adicionar_usuario(char *grupo, char *uid, ConcordiaRequest *request) {
@@ -166,7 +166,7 @@ void ler_mensagem(char *group_dest, char *id, ConcordiaRequest *request){
         printf("Group members: %s\n", databuffer);
     }
 
-    unlink(fd2);
+    unlink(fifoName);
 }
 
 void remover_mensagem(char *group_dest, char *mensagem, ConcordiaRequest *request){

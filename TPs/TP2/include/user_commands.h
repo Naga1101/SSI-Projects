@@ -4,5 +4,6 @@
 #include "./struct.h"
 
 void activate_user(char* user, char* folderPath);
+void deactivate_user(char *user, char *folderPath);
 
 #endif 

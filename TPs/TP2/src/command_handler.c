@@ -88,7 +88,8 @@ void handle_user_command(ConcordiaRequest request, char* usersFolderName){
         activate_user(request.user, usersFolderName);
 
     } else if (strcmp(request.command, "desativar") == 0) {
-        printf("Handling desativar command\n");
+        syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
+        deactivate_user(request.user, usersFolderName);
 
     } else {
         printf("Unknown command: %s\n", request.command);
