@@ -19,7 +19,7 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName, char* 
     if (strcmp(request.command, "enviar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag Dest: %s\n", request.dest);
         syslog(LOG_NOTICE, "Handler da flag Msg: %s\n", request.msg);
-        enviar_message(request, usersFolderName);
+        enviar_message(request, usersFolderName, groupsFolderPath);
 
     } else if (strcmp(request.command, "listar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag All_Mid: %d\n", request.all_mid);

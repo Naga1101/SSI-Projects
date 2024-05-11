@@ -356,3 +356,14 @@ void escreverLista(struct FileInfo sortedFiles[], int numFiles, int flagAll, cha
         }
     }
 }
+
+char* selectDestino(char** foldersWAccess, int numFolders, const char* dest) {
+    for (int i = 0; i < numFolders; i++) {
+        syslog(LOG_NOTICE, "path: %s", foldersWAccess[i]);
+        if (strstr(foldersWAccess[i], dest) != NULL) {
+            syslog(LOG_NOTICE, "Encontrei: %s", foldersWAccess[i]);
+            return foldersWAccess[i];
+        }
+    }
+    return NULL; // If not found
+}

@@ -3,7 +3,7 @@
 
 #include "./struct.h"
 
-void enviar_message(ConcordiaRequest request, char* folderPath);
+void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath);
 void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath);
 void responder_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath);
 void remover_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath);

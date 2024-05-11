@@ -20,5 +20,6 @@ int count_Allfiles(char *folderPaths[], int numFolders);
 int getUserGroups(char* uFolderPath, char* gFolderPath, char* username, char*** groupNames);
 void generate_timestamp(char *timestamp);
 void escreverLista(struct FileInfo sortedFiles[], int numFiles, int flagAll, char *user, char msg[]);
+char* selectDestino(char** foldersWAccess, int numFolders, const char* dest);
 
 #endif 

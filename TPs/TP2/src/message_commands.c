@@ -20,17 +20,22 @@
 #include "../include/files_struct.h"
 #include "../include/group_commands.h"
 
-void enviar_message(ConcordiaRequest request, char* folderPath){
+void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
     // syslog(LOG_NOTICE, "Entrei enviar: %s\n", request.dest);
     // char dest[16];
     // strncpy(dest, request.dest, 16);
-    char userFolderPath[100];
-    snprintf(userFolderPath, sizeof(userFolderPath), "%s/%s", folderPath, request.dest);
+    char** foldersWAccess;
+    int numDirs;
+
+    numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
+     
+    char *folderPath = selectDestino(foldersWAccess, numDirs, request.dest);
+    syslog(LOG_NOTICE, "Entrei enviar: %s\n", folderPath);
     // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
 
     struct stat st;
-    if (stat(userFolderPath, &st) == -1) {
-        syslog(LOG_ERR, "Folder doesnt exist: %s\n", userFolderPath);
+    if (stat(folderPath, &st) == -1) {
+        syslog(LOG_ERR, "Folder doesnt exist: %s\n", folderPath);
         exit(EXIT_FAILURE);
     }
 
@@ -38,9 +43,9 @@ void enviar_message(ConcordiaRequest request, char* folderPath){
     generate_timestamp(timestamp);
 
     int tam = strlen(request.msg);
-    int id = getHighestID(userFolderPath);
+    int id = getHighestID(folderPath);
     char fileName[250];
-    snprintf(fileName, sizeof(fileName), "%s/%d;%s;%s;%s;%d;0;0;0;0.txt", userFolderPath, id+1, request.dest, request.user,  timestamp, tam);
+    snprintf(fileName, sizeof(fileName), "%s/%d;%s;%s;%s;%d;0;0;0.txt", folderPath, id+1, request.dest, request.user,  timestamp, tam);
     // syslog(LOG_NOTICE, "Entrei enviar: %s\n", fileName);
 
     int file = open(fileName, O_CREAT | O_WRONLY | O_TRUNC, 0644);
