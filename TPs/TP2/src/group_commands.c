@@ -18,22 +18,23 @@
 #include "../include/message_commands.h"
 #include "../include/utils.h"
 
+
+/**
+ * Adiciona um user ao grupo do sistema linux
+*/
 int add_user_to_system_group(const char *user_to_add, const char *group) {
     pid_t pid;
     int status;
 
     pid = fork();
     if (pid == 0) {
-        // Child process: execute usermod command
         syslog(LOG_INFO, "Executing command: usermod -aG %s %s", group, user_to_add);
 
         execlp("usermod", "usermod", "-aG", group, user_to_add, (char *)NULL);
 
-        // Only reached if execlp fails
         syslog(LOG_ERR, "execlp failed: %s", strerror(errno));
         _exit(EXIT_FAILURE);
     } else if (pid > 0) {
-        // Parent process: wait for child to complete
         if (waitpid(pid, &status, 0) == -1) {
             syslog(LOG_ERR, "Failed to waitpid: %s", strerror(errno));
             return -1;
@@ -47,15 +48,9 @@ int add_user_to_system_group(const char *user_to_add, const char *group) {
                 syslog(LOG_ERR, "usermod command failed with exit status %d", exit_status);
                 return -1;
             }
-        } else {
-            syslog(LOG_ERR, "Child process did not exit normally");
-            return -1;
         }
-    } else {
-        // Fork failed
-        syslog(LOG_ERR, "Failed to fork: %s", strerror(errno));
-        return -1;
     }
+    return 0;
 }
 
 
@@ -70,7 +65,7 @@ int remove_user_from_system_group(const char *user_to_remove, const char *group)
         execlp("gpasswd", "gpasswd", "-d", user_to_remove, group, (char *)NULL);
         
         syslog(LOG_ERR, "execlp failed: %s", strerror(errno));
-        _exit(EXIT_FAILURE);  // Important to use _exit() in child
+        _exit(EXIT_FAILURE);
     } else {
         if (waitpid(pid, &status, 0) == -1) {
             syslog(LOG_ERR, "Failed to waitpid: %s", strerror(errno));
@@ -84,11 +79,9 @@ int remove_user_from_system_group(const char *user_to_remove, const char *group)
                 syslog(LOG_ERR, "gpasswd command failed with exit status %d", exit_status);
                 return -1;
             }
-        } else {
-            syslog(LOG_ERR, "Child did not exit normally");
-            return -1;
         }
     }
+    return 0;
 }
 
 
@@ -117,13 +110,14 @@ int create_system_group(const char *group) {
             } else {
                 syslog(LOG_ERR, "groupadd command failed with exit status %d", exit_status);
             }
-        } else {
-            syslog(LOG_ERR, "Child did not exit normally");
         }
         return -1;
     }
 }
 
+/**
+ * Utilizada para atribuir as ACLS ao que for passado como path
+*/
 void exec_setfacl(char *path, char *group) {
     pid_t pid;
     pid = fork();
@@ -144,12 +138,17 @@ void exec_setfacl(char *path, char *group) {
 }
 
 
+/*
+* Função que cria o folder para o grupo, adiciona também o user que criou ao grupo do folder e coloca o seu nome no ficheiro owner para o indentificar como criador
+*/
 void create_group(char *user, char *group, char* groupFolderPath, int pid) {
     char FolderPath[256];
     char ownerFilePath[270];
     snprintf(FolderPath, sizeof(FolderPath), "%s/%s", groupFolderPath, group);
 
     if (mkdir(FolderPath, 0770) == -1) {
+        char *msg = "Group already exists";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to create the directory '%s': %s", FolderPath, strerror(errno));
         return;
     }
@@ -192,7 +191,7 @@ void create_group(char *user, char *group, char* groupFolderPath, int pid) {
     }
 
     if (fprintf(ownerFile, "%s", user) < 0) {
-        syslog(LOG_ERR, "Failed to write to owner file in '%s'", FolderPath);
+        syslog(LOG_ERR, "Failed to registor owner in file '%s'", FolderPath);
         fclose(ownerFile);
         rmdir(FolderPath);
         return;
@@ -209,6 +208,8 @@ void create_group(char *user, char *group, char* groupFolderPath, int pid) {
     }
 
     if (add_user_to_system_group(user, group) != 0) {
+        char *msg = "Couldnt find user in the system";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
         return;
     }
@@ -245,8 +246,6 @@ int delete_system_group(const char *group) {
             } else {
                 syslog(LOG_ERR, "groupdel command failed with exit status %d", exit_status);
             }
-        } else {
-            syslog(LOG_ERR, "Child did not exit normally");
         }
         return -1;
     }
@@ -321,6 +320,8 @@ void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsF
     snprintf(cmd, sizeof(cmd), "usermod -aG %s %s", group, user_to_add);
 
     if (add_user_to_system_group(user_to_add, group) != 0) {
+        char *msg = "Couldnt find user in the system";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
         return;
     }
@@ -359,7 +360,7 @@ int user_in_group(const char *user, const struct group *grp) {
     if (!grp) return 0;
     for (int i = 0; grp->gr_mem[i] != NULL; i++) {
         if (strcmp(grp->gr_mem[i], user) == 0) {
-            return 1; // user found in group
+            return 1; // user pertence
         }
     }
     return 0;

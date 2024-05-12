@@ -28,6 +28,8 @@ void activate_user(char* user, char* folderPath, int pid){
     uid_t uid = pwd->pw_uid;
 
     if (mkdir(userFolderPath, 0750) == -1) {
+        char *msg = "user already registerd";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to create the directory: %s and the path is: %s\n", strerror(errno), userFolderPath);
         exit(EXIT_FAILURE);
     }
@@ -50,9 +52,11 @@ void activate_user(char* user, char* folderPath, int pid){
     returnListToClient(pid, confirmation);
 }
 
-int verify_user(char *path, uid_t uid) {
+int verify_user(char *path, uid_t uid, int pid) {
     struct stat statbuf;
     if (stat(path, &statbuf) == -1) {
+        char *msg = "User not registerd";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to get path stats: %s\n", strerror(errno));
         return -1;
     }
@@ -79,7 +83,7 @@ void deactivate_user(char *user, char *folderPath, int pid) {
     uid_t uid = pwd->pw_uid;
 
     // tenho de ver isto
-    if (verify_user(userFolderPath, uid) != 1) {
+    if (verify_user(userFolderPath, uid, pid) != 1) {
         syslog(LOG_ERR, "User does not have sufficient permissions to delete the directory: %s\n", userFolderPath);
         exit(EXIT_FAILURE);
     }

@@ -23,7 +23,7 @@ void send_to_deamon(ConcordiaRequest *request){
     }
 
     close(fd);
-    printf("Efetuando o seu pedido.'\n'");
+    printf("Efetuando o seu pedido.\n");
 }
 
 void read_from_daemon(){
@@ -65,6 +65,8 @@ void ativar_usuario(ConcordiaRequest *request) {
     snprintf(request->user, usersize,"%s", user);
     // printf("%s'\n'", user);
 
+    printf("pid do cliente é %d", request->pid);
+
     send_to_deamon(request);
     printf("Ativando usuário %s...\n", user);
 
@@ -96,6 +98,7 @@ int main(int argc, char *argv[]) {
     }
 
     request->flag = USER;
+    request->pid = getpid();
 
     if (strcmp(argv[1], "ativar") == 0) {
         ativar_usuario(request);

@@ -25,14 +25,12 @@ void send_to_deamon(ConcordiaRequest *request){
     // printf("command %s\n", request->command);
 
     close(fd);
-    printf("Efetuando o seu pedido.'\n'");
+    printf("Efetuando o seu pedido.\n");
 }
 
 void read_from_daemon(){
     char fifoName[128];
     snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
-
-    // printf("fifoName %s", fifoName);
 
     if (mkfifo(fifoName, 0660) == -1) {
         perror("Error creating return FIFO \n");
@@ -90,7 +88,7 @@ void listar_membros(char *grupo, ConcordiaRequest *request) {
     send_to_deamon(request);
     printf("Listando membros do grupo %s...\n", grupo);
 
-    printf("Group members: '\n'");
+    printf("Group members: \n");
     read_from_daemon();
 }
 
@@ -106,7 +104,6 @@ void adicionar_usuario(char *grupo, char *uid, ConcordiaRequest *request) {
     read_from_daemon();
 }
 
-//TODO verificar casos de falha
 void remover_usuario(char *uid, char *grupo, ConcordiaRequest *request) {
     snprintf(request->command, COMMAND_SIZE, "remover-user");
     snprintf(request->user, usersize, "%s", obter_usuario_atual());

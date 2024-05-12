@@ -25,51 +25,43 @@
 void skeleton_daemon() {
     pid_t pid;
 
-    /* Fork off the parent process */
     pid = fork();
 
-    /* An error occurred */
+    // erro
     if (pid < 0)
         exit(EXIT_FAILURE);
 
-    /* Success: Let the parent terminate */
+    // pai termina
     if (pid > 0)
         exit(EXIT_SUCCESS);
 
-    /* On success: The child process becomes session leader */
+    // filho session leader
     if (setsid() < 0)
         exit(EXIT_FAILURE);
 
-    /* Catch, ignore and handle signals */
-    //TODO: Implement a working signal handler here
     signal(SIGHUP, SIG_IGN);
 
-    /* Fork off for the second time*/
+
     pid = fork();
 
-    /* An error occurred */
     if (pid < 0)
         exit(EXIT_FAILURE);
 
-    /* Success: Let the second parent terminate */
     if (pid > 0)
         exit(EXIT_SUCCESS);
 
-    /* Set new file permissions */
     umask(0);
 
-    /* Change the working directory to the root directory */
-    /* or another appropriated directory */
     chdir("/");
 
-    /* Close all open file descriptors */
+    /// fechar os FD
     int x;
     for (x = sysconf(_SC_OPEN_MAX); x>=0; x--)
     {
         close(x);
     }
 
-    /* Open the log file */
+    // abrir o ficheiro de logs
     openlog("concordia_daemon", LOG_PID, LOG_DAEMON);
     syslog(LOG_NOTICE, "Concordia daemon started successfully.");
 }
@@ -135,7 +127,7 @@ int main() {
 
     int fd;
 
-    //apaga por causa dos testes
+    // apaga por causa dos testes
     unlink(FIFO);
 
     //criar o fifo
@@ -173,7 +165,7 @@ int main() {
     // Loop principal do daemon
     while (1) {
         process_incoming_messages(fd);
-        sleep(1);  // Substitua por uma espera mais eficiente se necessário
+        sleep(1);
     }
 
     exit(EXIT_SUCCESS);

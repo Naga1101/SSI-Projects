@@ -23,14 +23,12 @@ void send_to_deamon(ConcordiaRequest *request){
     }
 
     close(fd);
-    printf("Efetuando o seu pedido.'\n'");
+    printf("Efetuando o seu pedido.\n");
 }
 
 void read_from_daemon(){
     char fifoName[128];
     snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
-
-    // printf("fifoName %s", fifoName);
 
     if (mkfifo(fifoName, 0660) == -1) {
         perror("Error creating return FIFO \n");
@@ -75,12 +73,10 @@ void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
 void listar_mensagens(int all, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "listar");
-    // printf("Flag ativada:%d'\n'", all);
     request->all_mid = all;
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    // printf("Listando mensagens%s\n", all ? " (todas)" : "");
     send_to_deamon(request);
 
     char fifoName[128];
@@ -98,20 +94,31 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
         return;
     }
 
-    char buffer[515];
-    int finished = 0;
-    while (!finished){ 
-        ssize_t bytesread = read(fd2, buffer, sizeof(buffer));
-        if (bytesread > 0){
-            if(strcmp(buffer, "EOF") == 0){
-                finished = 1;
-                break;
-            }
-            else{ 
-                printf("%s", buffer);
-            }
+    ssize_t bytes_read;
+    char databuffer[12];
+    int msgLength;
+    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
+        if(strcmp(databuffer, "No messages") == 0){
+            printf("No messages to list\n");
+            close(fd2);
+            return;
         }
+        databuffer[bytes_read] = '\0';
+        msgLength = atoi(databuffer);
     }
+
+    char buffer[msgLength];
+
+    // ler a mensagem final
+    bytes_read = read(fd2, buffer, msgLength);
+    if (bytes_read <= 0) {
+        perror("Error reading the message from FIFO");
+        close(fd2);
+        return ;
+    }
+
+    buffer[bytes_read] = '\0';
+    printf("%s\n", buffer);
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {
@@ -121,7 +128,6 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    // printf("A obter o conteúdo da mensagem pretendida!\n");
     send_to_deamon(request);
 
     printf("Mensagem recebida:\n");
