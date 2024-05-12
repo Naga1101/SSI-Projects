@@ -4,6 +4,8 @@
 // #define bin "/home/rui/Desktop/2324-G31/TPs/TP2/bin"
 #define bin "/home/nuno/SSI/2324-G31/TPs/TP2/bin"
 
+#include <grp.h>
+
 void create_group (char *user, char *group, char* dirPath, int pid);
 void remove_group(char *user, char *group, char *groupFolderPath, int pid);
 void add_user_to_group(char *user, char *grupo, char *user_to_add, char *groupsFolderName, int pid);
