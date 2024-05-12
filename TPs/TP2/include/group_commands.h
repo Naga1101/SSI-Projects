@@ -10,5 +10,7 @@ void add_user_to_group(char *user, char *grupo, char *user_to_add, char *groupsF
 void remove_user_from_group(char *user, char *group, char *user_to_remove, char *groupsFolderName, int pid);
 void listar_membros_grupo(char *user, char *dest, char *groupsFolderName, int pid);
 void exec_setfacl(char *path, char *group);
+int remove_user_from_system_group(const char *user_to_remove, const char *group);
+int user_in_group(char *user, struct group *grp);
 
 #endif

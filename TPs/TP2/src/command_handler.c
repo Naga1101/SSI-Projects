@@ -66,7 +66,7 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
     }
 }
 
-void handle_user_command(ConcordiaRequest request, char* usersFolderName){
+void handle_user_command(ConcordiaRequest request, char* usersFolderName, char *groupsFolderName){
     syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
 
     if (strcmp(request.command, "ativar") == 0) {
@@ -75,7 +75,7 @@ void handle_user_command(ConcordiaRequest request, char* usersFolderName){
 
     } else if (strcmp(request.command, "desativar") == 0) {
         //syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
-        deactivate_user(request.user, usersFolderName, request.pid);
+        deactivate_user(request.user, usersFolderName, request.pid, groupsFolderName);
 
     } else {
         printf("Unknown command: %s\n", request.command);

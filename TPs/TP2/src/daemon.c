@@ -82,14 +82,10 @@ void process_incoming_messages(int fifo_fd) {
             {
             case MENSAGEM:
                 syslog(LOG_NOTICE, "MENSAGEM");
-                syslog(LOG_NOTICE, "pid que chegou %d", request.pid);
-
                 handle_user_message(request, usersFolderName, groupsFolderName);
                 break;
             case GRUPO:
                 syslog(LOG_NOTICE, "GRUPO");
-                                syslog(LOG_NOTICE, "pid que chegou %d", request.pid);
-
                 syslog(LOG_NOTICE, "Command: %s\n", request.command);
                 syslog(LOG_NOTICE, "user: %s\n", request.user);
                 syslog(LOG_NOTICE, "dest: %s\n", request.dest);
@@ -97,10 +93,8 @@ void process_incoming_messages(int fifo_fd) {
                 break;
             case USER:
                 syslog(LOG_NOTICE, "USER");
-                                syslog(LOG_NOTICE, "pid que chegou %d", request.pid);
-
                 syslog(LOG_NOTICE, "Command: %s\n", request.command);
-                handle_user_command(request, usersFolderName);
+                handle_user_command(request, usersFolderName, groupsFolderName);
                 break;
             default:
                 break;

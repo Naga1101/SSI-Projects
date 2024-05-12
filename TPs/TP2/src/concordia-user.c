@@ -65,8 +65,6 @@ void ativar_usuario(ConcordiaRequest *request) {
     snprintf(request->user, usersize,"%s", user);
     // printf("%s'\n'", user);
 
-    printf("pid do cliente é %d", request->pid);
-
     send_to_deamon(request);
     printf("Ativando usuário %s...\n", user);
 

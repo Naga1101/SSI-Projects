@@ -64,7 +64,6 @@ void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
     snprintf(request->user, usersize,"%s", user);
 
     printf("Enviando mensagem para %s\n", dest);
-    printf("FIFO PARA VIR %d\n", request->pid);
     send_to_deamon(request);
 
     read_from_daemon();

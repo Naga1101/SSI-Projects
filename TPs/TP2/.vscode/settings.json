@@ -4,6 +4,12 @@
         "utils.h": "c",
         "struct.h": "c",
         "files_struct.h": "c",
-        "group_commands.h": "c"
+        "group_commands.h": "c",
+        "string.h": "c",
+        "syslog.h": "c",
+        "wait.h": "c",
+        "grp.h": "c",
+        "dirent.h": "c",
+        "user_commands.h": "c"
     }
 }

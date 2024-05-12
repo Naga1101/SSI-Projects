@@ -120,19 +120,34 @@ int create_system_group(const char *group) {
 */
 void exec_setfacl(char *path, char *group) {
     pid_t pid;
-    pid = fork();
-    if (pid == 0) {
-        char cmd[1024];
-        snprintf(cmd, sizeof(cmd), "g:%s:rx,o::0", group);
-        execlp("setfacl", "setfacl", "-m", cmd, path, (char *) NULL);
+    int status;
 
+    
+
+    // Start a new process to execute setfacl
+    pid = fork();
+    if (pid == -1) {
+        syslog(LOG_ERR, "Failed to fork: %s", strerror(errno));
+        return;
+    }
+
+    if (pid == 0) { // Child process
+        char cmd[1024];
+        snprintf(cmd, sizeof(cmd), "g:rx,o::0");
+        snprintf(cmd, sizeof(cmd), "g:%s:rx,o::0", group);
+        execlp("setfacl", "setfacl", "-m", cmd, path, (char *)NULL);
+
+        // If execlp returns, it must have failed
         syslog(LOG_ERR, "execlp failed to execute setfacl: %s", strerror(errno));
         _exit(EXIT_FAILURE);
-    } else {
-        int status;
-        waitpid(pid, &status, 0);
-        if (status != 0) {
-            syslog(LOG_ERR, "setfacl command failed with status %d", status);
+    } else { // Parent process
+        // Wait for the child to complete and check status
+        if (waitpid(pid, &status, 0) == -1) {
+            syslog(LOG_ERR, "Failed to wait for child process: %s", strerror(errno));
+        } else if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
+            syslog(LOG_ERR, "setfacl command failed with status %d", WEXITSTATUS(status));
+        } else if (WIFSIGNALED(status)) {
+            syslog(LOG_ERR, "setfacl command killed by signal %d", WTERMSIG(status));
         }
     }
 }
@@ -146,7 +161,7 @@ void create_group(char *user, char *group, char* groupFolderPath, int pid) {
     char ownerFilePath[270];
     snprintf(FolderPath, sizeof(FolderPath), "%s/%s", groupFolderPath, group);
 
-    if (mkdir(FolderPath, 0770) == -1) {
+    if (mkdir(FolderPath, 0750) == -1) {
         char *msg = "Group already exists";
         returnListToClient(pid, msg);
         syslog(LOG_ERR, "Failed to create the directory '%s': %s", FolderPath, strerror(errno));
@@ -356,7 +371,7 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
     returnListToClient(pid, confirmation);
 }
 
-int user_in_group(const char *user, const struct group *grp) {
+int user_in_group(char *user, struct group *grp) {
     if (!grp) return 0;
     for (int i = 0; grp->gr_mem[i] != NULL; i++) {
         if (strcmp(grp->gr_mem[i], user) == 0) {
