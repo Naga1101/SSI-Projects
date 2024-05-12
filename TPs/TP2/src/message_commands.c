@@ -19,6 +19,7 @@
 #include "../include/struct.h"
 #include "../include/files_struct.h"
 #include "../include/group_commands.h"
+#include "../include/utils.h"
 
 void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
     // syslog(LOG_NOTICE, "Entrei enviar: %s\n", request.dest);
@@ -121,12 +122,6 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
         syslog(LOG_ERR, "Error sorting files.\n");
         exit(EXIT_FAILURE);
     }
-    // else{
-    //     syslog(LOG_NOTICE, "aqui %d\n", numFiles);
-    //     for (int i = 0; i < numFiles; ++i) {
-    //        syslog(LOG_NOTICE, "file sorted: %s index: %d tam: %d\n", sortedFiles[i].fileName, i, sortedFiles[i].tam);
-    //     }
-    // }
     
     int tam = sortedFiles[i].tam;
 
@@ -354,17 +349,32 @@ void listar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
         exit(EXIT_FAILURE);
     }
 
-    // syslog(LOG_NOTICE, "Antes do listar\n");
-    // for(int i = 0; i<numFiles; i++){
-    //     syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
-    // }
-    // syslog(LOG_NOTICE, "Antes do listar\n");
-
+    const int maxFilesPerMessage = 6;
     char msg[512];
-    escreverLista(sortedFiles, numFiles, request.all_mid, request.user, msg);
+    memset(msg, 0, sizeof(msg));
+    int startIdx = 0;
+
+    snprintf(msg, sizeof(msg), "Index | From |      Received      | Status | is Reply | Size of Message |  Via  |\n");
+    returnListToClient(request.pid, msg);
+    memset(msg, 0, sizeof(msg));
+
+    while (startIdx < numFiles) {
+        int processed = escreverLista(sortedFiles, numFiles, startIdx, maxFilesPerMessage, request.all_mid, request.user, msg, sizeof(msg));
+        
+        if (processed == 0) {
+            break;
+        }
+        
+        returnListToClient(request.pid, msg);
+        memset(msg, 0, sizeof(msg));
+        startIdx += processed;
+    }
+
+    snprintf(msg, sizeof(msg), "EOF");
+    returnListToClient(request.pid, msg);
+
 
     // syslog(LOG_NOTICE, "Lista de files: '\n'%s\n", msg);
-
 
     returnListToClient(request.pid, msg);
 }

@@ -19,7 +19,7 @@ void sort_Allfiles(char *folderPaths[], int numFolders, struct FileInfo sortedFi
 int count_Allfiles(char *folderPaths[], int numFolders);
 int getUserGroups(char* uFolderPath, char* gFolderPath, char* username, char*** groupNames);
 void generate_timestamp(char *timestamp);
-void escreverLista(struct FileInfo sortedFiles[], int numFiles, int flagAll, char *user, char msg[]);
+int escreverLista(struct FileInfo sortedFiles[], int numFiles, int startIdx, int maxFiles, int flagAll, char *user, char msg[], size_t msgSize);
 char* selectDestino(char** foldersWAccess, int numFolders, const char* dest);
 int checkIfRead(const char *file, const char *username, int start, int end);
 

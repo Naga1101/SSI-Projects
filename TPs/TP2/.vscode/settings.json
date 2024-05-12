@@ -2,6 +2,8 @@
     "files.associations": {
         "pwd.h": "c",
         "utils.h": "c",
-        "struct.h": "c"
+        "struct.h": "c",
+        "files_struct.h": "c",
+        "group_commands.h": "c"
     }
 }

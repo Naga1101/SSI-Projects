@@ -329,36 +329,27 @@ void generate_timestamp(char *timestamp) {
 }
 
 
-void escreverLista(struct FileInfo sortedFiles[], int numFiles, int flagAll, char *user, char msg[]) {
-    int offset = 0;
-    offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
-                        "Index | From |      Received      | Status | is Reply | Size of Message |  Via  |\n");
+int escreverLista(struct FileInfo sortedFiles[], int numFiles, int startIdx, int maxFiles, int flagAll, char *user, char msg[], size_t msgSize) {
+    int offset = 0; // start without adding header
 
-    if(flagAll){
-        for (int i = 0; i < numFiles; i++) {
-            // syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
-            offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
-                            "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
-                            i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
-                            sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
-                            (sortedFiles[i].read == 1) ? "Read" : "Not Read",
-                            (sortedFiles[i].isReply != 0) ? "Yes" : "No",
-                            sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
-        }
-    }else{
-        for (int i = 0; i < numFiles; i++) {
-            if(sortedFiles[i].read == 1) break;
-            // syslog(LOG_NOTICE, "%s\n", sortedFiles[i].fileName);
-            offset += snprintf(msg + offset, MAX_CHAR_ARRAY_LENGTH - offset,
-                            "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
-                            i+1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
-                            sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
-                            (sortedFiles[i].read == 1) ? "Read" : "Not Read",
-                            (sortedFiles[i].isReply != 0) ? "Yes" : "No",
-                            sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
-        }
+    int endIdx = startIdx + maxFiles;
+    if (endIdx > numFiles) endIdx = numFiles;
+
+    for (int i = startIdx; i < endIdx; i++) {
+        if (!flagAll && sortedFiles[i].read == 1) break;
+        offset += snprintf(msg + offset, msgSize - offset,
+                           "   %d   | %s | %02d-%02d-%04d %02d:%02d:%02d | %s | %s | %d |  %s  |\n",
+                           i + 1, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year,
+                           sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second,
+                           (sortedFiles[i].read == 1) ? "Read" : "Not Read",
+                           (sortedFiles[i].isReply != 0) ? "Yes" : "No",
+                           sortedFiles[i].tam, strcmp(sortedFiles[i].name, user) ? sortedFiles[i].name : "DM");
     }
+    return endIdx - startIdx; // Return number of files processed
 }
+
+
+
 
 char* selectDestino(char** foldersWAccess, int numFolders, const char* dest) {
     for (int i = 0; i < numFolders; i++) {

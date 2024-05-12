@@ -66,6 +66,7 @@ void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
     snprintf(request->user, usersize,"%s", user);
 
     printf("Enviando mensagem para %s\n", dest);
+    printf("FIFO PARA VIR %d\n", request->pid);
     send_to_deamon(request);
 
     read_from_daemon();
@@ -82,7 +83,35 @@ void listar_mensagens(int all, ConcordiaRequest *request) {
     // printf("Listando mensagens%s\n", all ? " (todas)" : "");
     send_to_deamon(request);
 
-    read_from_daemon();
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
+
+    // printf("fifoName %s", fifoName);
+
+    if (mkfifo(fifoName, 0660) == -1) {
+        perror("Error creating return FIFO \n");
+    }
+
+    int fd2 = open(fifoName, O_RDONLY);
+    if(fd2 == -1){
+        perror("Error opening FIFO");
+        return;
+    }
+
+    char buffer[515];
+    int finished = 0;
+    while (!finished){ 
+        ssize_t bytesread = read(fd2, buffer, sizeof(buffer));
+        if (bytesread > 0){
+            if(strcmp(buffer, "EOF") == 0){
+                finished = 1;
+                break;
+            }
+            else{ 
+                printf("%s", buffer);
+            }
+        }
+    }
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {

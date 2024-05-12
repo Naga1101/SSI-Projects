@@ -283,6 +283,8 @@ void remove_group(char *user, char *group, char *groupFolderPath, int pid) {
 
     if (!is_owner(folderPath, user)) {
         syslog(LOG_ERR, "Unauthorized attempt to remove group '%s' by user '%s'", group, user);
+        char *msg = "Unauthorized attempt to remove group";
+        returnListToClient(pid, msg);
         return;
     } else {
         syslog(LOG_NOTICE, "Owner verified, deleting group: %s\n", group);
@@ -310,6 +312,8 @@ void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsF
 
     if (!is_owner(group_folder_path, user)) {
         syslog(LOG_ERR, "Unauthorized attempt to modify group '%s' by user '%s'", group, user);
+        char *msg = "Unauthorized attempt to remove group";
+        returnListToClient(pid, msg);
         return;
     }
 
@@ -333,6 +337,8 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
 
     if (!is_owner(group_folder_path, user)) {
         syslog(LOG_ERR, "Unauthorized attempt to modify group '%s' by user '%s'", group, user);
+        char *msg = "Unauthorized attempt to remove group";
+        returnListToClient(pid, msg);
         return;
     }
 
@@ -347,6 +353,16 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
     snprintf(confirmation, sizeof(confirmation), "O user %s foi removido do grupo %s com sucesso", user, group);
 
     returnListToClient(pid, confirmation);
+}
+
+int user_in_group(const char *user, const struct group *grp) {
+    if (!grp) return 0;
+    for (int i = 0; grp->gr_mem[i] != NULL; i++) {
+        if (strcmp(grp->gr_mem[i], user) == 0) {
+            return 1; // user found in group
+        }
+    }
+    return 0;
 }
 
 void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int pid){
@@ -364,20 +380,19 @@ void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int p
 
     grp = getgrnam(group);
     if(!pwd) {
+        char *msg = "Group doenst exist";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "Error getting group %s info", group);
         return;
     }
 
     int boolean;
     // verificar se o user pertencer ao grupo
-    for (int i = 0; grp->gr_mem[i] != NULL; i++) {
-        if (strcmp(grp->gr_mem[i], user) == 0) {
-            boolean = 1;
-            break;
-        }
-    }
+    boolean = user_in_group(user, grp);
 
-    if(!boolean){
+    if(boolean == 0){
+        char *msg = "Unauthorized attempt to list group";
+        returnListToClient(pid, msg);
         syslog(LOG_ERR, "User %s does not belong to the group %s", user, group);
         return;
     }
@@ -395,16 +410,6 @@ void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int p
     returnListToClient(pid, buffer);
 }
 
-int user_in_group(const char *user, const struct group *grp) {
-    if (!grp) return 0;
-    for (int i = 0; grp->gr_mem[i] != NULL; i++) {
-        if (strcmp(grp->gr_mem[i], user) == 0) {
-            return 1; // user found in group
-        }
-    }
-    return 0;
-}
-
 void responder_mensagem_grupo(ConcordiaRequest request, char* groupsFolderPath){
     syslog(LOG_NOTICE, "Entrei responder grupo: %s\n", request.dest);
 
@@ -413,6 +418,8 @@ void responder_mensagem_grupo(ConcordiaRequest request, char* groupsFolderPath){
 
     struct stat st;
     if (stat(groupFolderPath, &st) == -1) {
+        char *msg = "Group doesnt exist";
+        returnListToClient(request.pid, msg);
         syslog(LOG_ERR, "Folder doesn't exist: %s\n", groupFolderPath);
         exit(EXIT_FAILURE);
     }
