@@ -94,7 +94,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
     syslog(LOG_NOTICE, "Entrei ler: %s\n", request.user);
     char** foldersWAccess;
     int numDirs;
-    int groupFlag = 0;
+    int groupFlag = 1;
 
     numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
 
@@ -103,7 +103,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
 
     struct FileInfo sortedFiles[numFiles];
 
-    sort_Allfiles(foldersWAccess, numDirs, sortedFiles);
+    sort_Allfiles(foldersWAccess, numDirs, sortedFiles, request.user);
     free(foldersWAccess);
 
     if (numFiles <= 0) {
@@ -127,7 +127,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
 
     char folderPath[128];
     if (strcmp(sortedFiles[i].name, request.user) != 0) {
-        groupFlag = 1; 
+        groupFlag = 0; 
         strcpy(folderPath, gFolderPath);
     } else {
         strcpy(folderPath, uFolderPath);
@@ -161,7 +161,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
 
     syslog(LOG_NOTICE, "Message read: %s\n", msg);
 
-    if (groupFlag == 1) {
+    if (groupFlag == 0) {
         file = open(fileName, O_WRONLY | O_APPEND);
         if (file < 0) {
             syslog(LOG_ERR, "Error opening file '%s': %s\n", fileName, strerror(errno));
@@ -172,11 +172,13 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
         snprintf(userReading, sizeof(userReading), ";%s", request.user);
         write(file, userReading, strlen(userReading));
         close(file);
+
+        groupFlag = strlen(userReading) + sortedFiles[i].read;
     }
 
     if(sortedFiles[i].read == 0){
         char updateName[512];                                                                                         
-        snprintf(updateName, sizeof(updateName), "%s/%d;%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%02d;1;%d;%d.txt", folderPath, sortedFiles[i].id, sortedFiles[i].name, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second, sortedFiles[i].tam, sortedFiles[i].nReplys, sortedFiles[i].isReply);
+        snprintf(updateName, sizeof(updateName), "%s/%d;%s;%s;%02d-%02d-%04d|%02d:%02d:%02d;%d;%d;%d;%d.txt", folderPath, sortedFiles[i].id, sortedFiles[i].name, sortedFiles[i].nameSender, sortedFiles[i].day, sortedFiles[i].month, sortedFiles[i].year, sortedFiles[i].hour, sortedFiles[i].minute, sortedFiles[i].second, sortedFiles[i].tam, groupFlag, sortedFiles[i].nReplys, sortedFiles[i].isReply);
         rename(fileName, updateName);
     }
 
@@ -196,7 +198,7 @@ void responder_message(ConcordiaRequest request, char* uFolderPath, char* gFolde
 
     struct FileInfo sortedFiles[numFiles];
 
-    sort_Allfiles(foldersWAccess, numDirs, sortedFiles);
+    sort_Allfiles(foldersWAccess, numDirs, sortedFiles, request.user);
     free(foldersWAccess);
 
     if (numFiles <= 0) {
@@ -277,7 +279,7 @@ void remover_message(ConcordiaRequest request, char* uFolderPath, char* gFolderP
 
     struct FileInfo sortedFiles[numFiles];
 
-    sort_Allfiles(foldersWAccess, numDirs, sortedFiles);
+    sort_Allfiles(foldersWAccess, numDirs, sortedFiles, request.user);
     free(foldersWAccess);
 
     if (numFiles <= 0) {
@@ -323,7 +325,7 @@ void listar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     struct FileInfo sortedFiles[numFiles];
 
 
-    sort_Allfiles(foldersWAccess, numDirs, sortedFiles);
+    sort_Allfiles(foldersWAccess, numDirs, sortedFiles, request.user);
     free(foldersWAccess);
 
     if (numFiles <= 0) {

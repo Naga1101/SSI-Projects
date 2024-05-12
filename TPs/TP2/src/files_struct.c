@@ -146,7 +146,7 @@ void sort_files(char *folderPath, struct FileInfo sortedFiles[]){
     }
 }
 
-void sort_Allfiles(char *folderPaths[], int numFolders, struct FileInfo sortedFiles[]) {
+void sort_Allfiles(char *folderPaths[], int numFolders, struct FileInfo sortedFiles[], char *user) {
     int totalFiles = 0;
     
     // Iterate over each folder path
@@ -182,6 +182,9 @@ void sort_Allfiles(char *folderPaths[], int numFolders, struct FileInfo sortedFi
                 syslog(LOG_NOTICE, "file: %s\n", filepath);
                 if (strcmp(ent->d_name, "owner") != 0) {
                     parseFileName(ent->d_name, &files[fileCount]);
+                    if(strcmp(user, files[fileCount].name) != 0){
+                        checkIfRead(filepath, user, files[fileCount].tam, files[fileCount].read);
+                    }
                     fileCount++;
                 }
             }
@@ -366,4 +369,48 @@ char* selectDestino(char** foldersWAccess, int numFolders, const char* dest) {
         }
     }
     return NULL; // If not found
+}
+
+int checkIfRead(const char *file, const char *username, int start, int end) {
+    int fd = open(file, O_RDONLY);
+    if (fd == -1) {
+        syslog(LOG_ERR, "Error opening file: %m");
+        return -1; 
+    }
+
+    if (lseek(fd, start, SEEK_SET) == -1) {
+        syslog(LOG_ERR, "Error seeking file: %m");
+        close(fd);
+        return -1; 
+    }
+
+    char *buffer = (char *)malloc(end + 1); 
+    if (buffer == NULL) {
+        syslog(LOG_ERR, "Memory allocation error");
+        close(fd);
+        return -1; 
+    }
+
+    ssize_t bytesRead = read(fd, buffer, end);
+    if (bytesRead == -1) {
+        syslog(LOG_ERR, "Error reading file: %m");
+        free(buffer);
+        close(fd);
+        return -1; 
+    }
+    buffer[bytesRead] = '\0'; 
+
+    int found = 0;
+    char *token = strtok(buffer, ";");
+    while (token != NULL) {
+        if (strcmp(token, username) == 0) {
+            found = 1;
+            break;
+        }
+        token = strtok(NULL, ";");
+    }
+
+    free(buffer);
+    close(fd);
+    return found; // Return 1 if found, 0 otherwise
 }
