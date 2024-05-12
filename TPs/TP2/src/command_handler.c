@@ -47,11 +47,11 @@ void handle_user_message(ConcordiaRequest request, char* usersFolderName, char* 
 void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
     syslog(LOG_NOTICE, "Handler da flag Command: %d\n", request.flag);
     if (strcmp(request.command, "criar") == 0) {
-        create_group(request.user, request.dest, groupsFolderName);
+        create_group(request.user, request.dest, groupsFolderName, request.pid);
         printf("Handling criar command\n");
 
     } else if (strcmp(request.command, "remover") == 0) {
-        remove_group(request.user, request.dest, groupsFolderName);
+        remove_group(request.user, request.dest, groupsFolderName, request.pid);
         printf("Handling remover command\n");
 
     } else if (strcmp(request.command, "listar") == 0) {
@@ -59,11 +59,11 @@ void handle_group_message(ConcordiaRequest request, char* groupsFolderName){
         printf("Handling listar command\n");
 
     } else if (strcmp(request.command, "adicionar") == 0) {
-        add_user_to_group(request.user, request.dest, request.msg, groupsFolderName);
+        add_user_to_group(request.user, request.dest, request.msg, groupsFolderName, request.pid);
         printf("Handling adicionar command\n");
 
     } else if (strcmp(request.command, "remover-user") == 0) {
-        remove_user_from_group(request.user, request.dest, request.msg, groupsFolderName);
+        remove_user_from_group(request.user, request.dest, request.msg, groupsFolderName, request.pid);
         printf("Handling remover-usuario command\n");
 
     } else {
@@ -76,11 +76,11 @@ void handle_user_command(ConcordiaRequest request, char* usersFolderName){
 
     if (strcmp(request.command, "ativar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
-        activate_user(request.user, usersFolderName);
+        activate_user(request.user, usersFolderName, request.pid);
 
     } else if (strcmp(request.command, "desativar") == 0) {
         syslog(LOG_NOTICE, "Handler da flag User: %s\n", request.user);
-        deactivate_user(request.user, usersFolderName);
+        deactivate_user(request.user, usersFolderName, request.pid);
 
     } else {
         printf("Unknown command: %s\n", request.command);

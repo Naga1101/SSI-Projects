@@ -144,7 +144,7 @@ void exec_setfacl(char *path, char *group) {
 }
 
 
-void create_group(char *user, char *group, char* groupFolderPath) {
+void create_group(char *user, char *group, char* groupFolderPath, int pid) {
     char FolderPath[256];
     char ownerFilePath[270];
     snprintf(FolderPath, sizeof(FolderPath), "%s/%s", groupFolderPath, group);
@@ -216,6 +216,11 @@ void create_group(char *user, char *group, char* groupFolderPath) {
     exec_setfacl(ownerFilePath, group);
 
     syslog(LOG_NOTICE, "Group '%s' created successfully with owner '%s'", group, user);
+
+    char confirmation[50];
+    snprintf(confirmation, sizeof(confirmation), "Criado o grupo %s com sucesso", group);
+
+    returnListToClient(pid, confirmation);
 }
 
 int delete_system_group(const char *group) {
@@ -272,7 +277,7 @@ int is_owner(const char *group_folder_path, const char *user) {
 }
 
 
-void remove_group(char *user, char *group, char *groupFolderPath) {
+void remove_group(char *user, char *group, char *groupFolderPath, int pid) {
     char folderPath[256];
     snprintf(folderPath, sizeof(folderPath), "%s/%s", groupFolderPath, group);
 
@@ -292,9 +297,14 @@ void remove_group(char *user, char *group, char *groupFolderPath) {
         syslog(LOG_ERR, "Failed to delete system group '%s'", group);
         return;
     }
+
+    char confirmation[50];
+    snprintf(confirmation, sizeof(confirmation), "O grupo %s foi removido com sucesso", group);
+
+    returnListToClient(pid, confirmation);
 }
 
-void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsFolderName) {
+void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsFolderName, int pid) {
     char group_folder_path[256];
     snprintf(group_folder_path, sizeof(group_folder_path), "%s/%s", groupsFolderName, group);
 
@@ -310,9 +320,14 @@ void add_user_to_group(char *user, char *group, char *user_to_add, char *groupsF
         syslog(LOG_ERR, "Failed to add user '%s' to group '%s'", user, group);
         return;
     }
+
+    char confirmation[50];
+    snprintf(confirmation, sizeof(confirmation), "O user %s foi adicionado do grupo %s com sucesso", user, group);
+
+    returnListToClient(pid, confirmation);
 }
 
-void remove_user_from_group(char *user, char *group, char *user_to_remove, char *groupsFolderName) {
+void remove_user_from_group(char *user, char *group, char *user_to_remove, char *groupsFolderName, int pid) {
     char group_folder_path[256];
     snprintf(group_folder_path, sizeof(group_folder_path), "%s/%s", groupsFolderName, group);
 
@@ -327,6 +342,11 @@ void remove_user_from_group(char *user, char *group, char *user_to_remove, char 
     } else {
         syslog(LOG_NOTICE, "User '%s' removed from group '%s' successfully", user_to_remove, group);
     }
+
+    char confirmation[50];
+    snprintf(confirmation, sizeof(confirmation), "O user %s foi removido do grupo %s com sucesso", user, group);
+
+    returnListToClient(pid, confirmation);
 }
 
 void listar_membros_grupo(char *user, char *group, char *groupsFolderName, int pid){

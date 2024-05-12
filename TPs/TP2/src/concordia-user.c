@@ -15,6 +15,7 @@ void send_to_deamon(ConcordiaRequest *request){
         exit(EXIT_FAILURE);
     }
 
+
     if(write(fd, request, sizeof(ConcordiaRequest)) == -1){
         perror("Falha ao enviar o request");
         close(fd);
@@ -22,7 +23,33 @@ void send_to_deamon(ConcordiaRequest *request){
     }
 
     close(fd);
-    printf("Mensagem enviada com sucesso\n");
+    printf("Efetuando o seu pedido.'\n'");
+}
+
+void read_from_daemon(){
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
+
+    // printf("fifoName %s", fifoName);
+
+    if (mkfifo(fifoName, 0660) == -1) {
+        perror("Error creating return FIFO \n");
+    }
+
+    int fd2 = open(fifoName, O_RDONLY);
+    if(fd2 == -1){
+        perror("Error opening FIFO");
+        return;
+    }
+
+    ssize_t bytes_read;
+    char databuffer[MSG_SIZE];
+
+    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
+        printf("%s\n", databuffer);
+    }
+
+    unlink(fifoName);
 }
 
 // Função para obter o nome do usuário atual
@@ -32,26 +59,28 @@ char *obter_usuario_atual() {
 }
 
 void ativar_usuario(ConcordiaRequest *request) {
-    printf("Ativando usuário\n");
-
     request->flag = USER;
     snprintf(request->command, COMMAND_SIZE, "ativar");
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
-    printf("%s'\n'", user);
+    // printf("%s'\n'", user);
 
     send_to_deamon(request);
+    printf("Ativando usuário %s...\n", user);
+
+    read_from_daemon();
 }
 
 void desativar_usuario(ConcordiaRequest *request) {
-    printf("Desativando usuário\n");
-
     request->flag = USER;
     snprintf(request->command, COMMAND_SIZE, "desativar");
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
     send_to_deamon(request);
+    printf("Desativando usuário %s\n", user);
+
+    read_from_daemon();
 }
 
 int main(int argc, char *argv[]) {

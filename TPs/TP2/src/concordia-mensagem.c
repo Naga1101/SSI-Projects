@@ -23,8 +23,33 @@ void send_to_deamon(ConcordiaRequest *request){
     }
 
     close(fd);
-    printf("Mensagem enviada com sucesso.'\n'");
+    printf("Efetuando o seu pedido.'\n'");
+}
 
+void read_from_daemon(){
+    char fifoName[128];
+    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
+
+    // printf("fifoName %s", fifoName);
+
+    if (mkfifo(fifoName, 0660) == -1) {
+        perror("Error creating return FIFO \n");
+    }
+
+    int fd2 = open(fifoName, O_RDONLY);
+    if(fd2 == -1){
+        perror("Error opening FIFO");
+        return;
+    }
+
+    ssize_t bytes_read;
+    char databuffer[MSG_SIZE];
+
+    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
+        printf("%s\n", databuffer);
+    }
+
+    unlink(fifoName);
 }
 
 char* obter_usuario_atual() {
@@ -40,44 +65,24 @@ void enviar_mensagem(char *dest, char *msg, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    printf("Enviando mensagem para %s: %s\n", dest, msg);
+    printf("Enviando mensagem para %s\n", dest);
     send_to_deamon(request);
+
+    read_from_daemon();
 }
 
 void listar_mensagens(int all, ConcordiaRequest *request) {
     request->flag = MENSAGEM;
     snprintf(request->command, COMMAND_SIZE, "listar");
-    printf("Flag ativada:%d'\n'", all);
+    // printf("Flag ativada:%d'\n'", all);
     request->all_mid = all;
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    char fifoName[128];
-    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
-
-    printf("fifoName %s", fifoName);
-
-    if (mkfifo(fifoName, 0660) == -1) {
-        perror("Error creating return FIFO \n");
-    }
-
-    printf("Listando mensagens%s\n", all ? " (todas)" : "");
+    // printf("Listando mensagens%s\n", all ? " (todas)" : "");
     send_to_deamon(request);
 
-    int fd2 = open(fifoName, O_RDONLY);
-    if(fd2 == -1){
-        perror("Error opening FIFO");
-        return;
-    }
-
-    ssize_t bytes_read;
-    char databuffer[MSG_SIZE];
-
-    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
-        printf("%s\n", databuffer);
-    }
-    
-    unlink(fifoName);
+    read_from_daemon();
 }
 
 void ler_mensagem(int mid, ConcordiaRequest *request) {
@@ -87,32 +92,12 @@ void ler_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    char fifoName[128];
-    snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
-
-    printf("fifoName %s", fifoName);
-
-    if (mkfifo(fifoName, 0660) == -1) {
-        perror("Error creating return FIFO \n");
-    }
-
-    printf("Lendo mensagem %d\n", mid);
+    // printf("A obter o conteúdo da mensagem pretendida!\n");
     send_to_deamon(request);
 
-    int fd2 = open(fifoName, O_RDONLY);
-    if(fd2 == -1){
-        perror("Error opening FIFO");
-        return;
-    }
+    printf("Mensagem recebida:\n");
 
-    ssize_t bytes_read;
-    char databuffer[MSG_SIZE];
-
-    if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
-        printf("%s\n", databuffer);
-    }
-
-    unlink(fifoName);
+    read_from_daemon();
 }
 
 void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
@@ -123,8 +108,10 @@ void responder_mensagem(int mid, char *msg, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    printf("Respondendo à mensagem %d: %s\n", mid, msg);
     send_to_deamon(request);
+    printf("Enviando resposta...\n");
+
+    read_from_daemon();
 }
 
 void remover_mensagem(int mid, ConcordiaRequest *request) {
@@ -134,8 +121,10 @@ void remover_mensagem(int mid, ConcordiaRequest *request) {
     char *user = obter_usuario_atual();
     snprintf(request->user, usersize,"%s", user);
 
-    printf("Removendo mensagem %d\n", request->all_mid);
     send_to_deamon(request);
+    printf("Removendo mensagem de índice: %d\n", request->all_mid);
+
+    read_from_daemon();
 }
 
 

@@ -22,67 +22,21 @@ void send_to_deamon(ConcordiaRequest *request){
         exit(EXIT_FAILURE);
     }
 
-    printf("command %s\n", request->command);
+    // printf("command %s\n", request->command);
 
     close(fd);
-    printf("Menesagem enviada com sucesso\n");
-
+    printf("Efetuando o seu pedido.'\n'");
 }
 
-// Função para obter o nome do usuário atual
-char* obter_usuario_atual() {
-    char* usuario = getenv("USER");
-    return usuario;
-}
-
-void enviar_msg_grupo(char *grupo, char *msg, ConcordiaRequest *request) {
-    printf("Enviando mensagem ao grupo %s\n", grupo);
-
-    snprintf(request->command, COMMAND_SIZE, "enviar");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", grupo);
-    snprintf(request->msg, MSG_SIZE, "%s", msg);
-
-    send_to_deamon(request);
-}
-
-void criar_grupo(char *nome, ConcordiaRequest *request) {
-    printf("Criando grupo %s\n", nome);
-
-    snprintf(request->command, COMMAND_SIZE, "criar");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", nome);
-
-    send_to_deamon(request);
-}
-
-void remover_grupo(char *grupo, ConcordiaRequest *request) {
-    printf("Removendo grupo %s\n", grupo);
-
-    snprintf(request->command, COMMAND_SIZE, "remover");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", grupo);
-
-    send_to_deamon(request);
-}
-
-void listar_membros(char *grupo, ConcordiaRequest *request) {
-    printf("Listando membros do grupo %s\n", grupo);
-
-    snprintf(request->command, COMMAND_SIZE, "listar");
-    snprintf(request->user, usersize, "%s", obter_usuario_atual());
-    snprintf(request->dest, usersize, "%s", grupo);
-
+void read_from_daemon(){
     char fifoName[128];
     snprintf(fifoName, sizeof(fifoName), "/var/lib/concordia/fifos/fifo_%d", getpid());
 
-    printf("fifoName %s", fifoName);
+    // printf("fifoName %s", fifoName);
 
     if (mkfifo(fifoName, 0660) == -1) {
         perror("Error creating return FIFO \n");
     }
-
-    send_to_deamon(request);
 
     int fd2 = open(fifoName, O_RDONLY);
     if(fd2 == -1){
@@ -94,32 +48,75 @@ void listar_membros(char *grupo, ConcordiaRequest *request) {
     char databuffer[MSG_SIZE];
 
     if((bytes_read = read(fd2, databuffer, sizeof(databuffer))) > 0){
-        printf("Group members: %s\n", databuffer);
+        printf("%s\n", databuffer);
     }
     
     unlink(fifoName);
 }
 
-void adicionar_usuario(char *grupo, char *uid, ConcordiaRequest *request) {
-    printf("Adicionando usuário %s ao grupo %s\n", uid, grupo);
+// Função para obter o nome do usuário atual
+char* obter_usuario_atual() {
+    char* usuario = getenv("USER");
+    return usuario;
+}
 
+void criar_grupo(char *nome, ConcordiaRequest *request) {
+    snprintf(request->command, COMMAND_SIZE, "criar");
+    snprintf(request->user, usersize, "%s", obter_usuario_atual());
+    snprintf(request->dest, usersize, "%s", nome);
+
+    send_to_deamon(request);
+    printf("Criando grupo %s...\n", nome);
+
+    read_from_daemon();
+}
+
+void remover_grupo(char *grupo, ConcordiaRequest *request) {
+    snprintf(request->command, COMMAND_SIZE, "remover");
+    snprintf(request->user, usersize, "%s", obter_usuario_atual());
+    snprintf(request->dest, usersize, "%s", grupo);
+
+    send_to_deamon(request);
+    printf("Removendo grupo %s...\n", grupo);
+
+    read_from_daemon();
+}
+
+void listar_membros(char *grupo, ConcordiaRequest *request) {
+    snprintf(request->command, COMMAND_SIZE, "listar");
+    snprintf(request->user, usersize, "%s", obter_usuario_atual());
+    snprintf(request->dest, usersize, "%s", grupo);
+
+    send_to_deamon(request);
+    printf("Listando membros do grupo %s...\n", grupo);
+
+    printf("Group members: '\n'");
+    read_from_daemon();
+}
+
+void adicionar_usuario(char *grupo, char *uid, ConcordiaRequest *request) {
     snprintf(request->command, COMMAND_SIZE, "adicionar");
     snprintf(request->user, usersize, "%s", obter_usuario_atual());
     snprintf(request->dest, usersize, "%s", grupo);
     snprintf(request->msg, MSG_SIZE, "%s", uid);
 
     send_to_deamon(request);
+    printf("Adicionando usuário %s ao grupo %s...\n", uid, grupo);
+
+    read_from_daemon();
 }
 
+//TODO verificar casos de falha
 void remover_usuario(char *uid, char *grupo, ConcordiaRequest *request) {
-    printf("Removendo usuário %s\n", uid);
-
     snprintf(request->command, COMMAND_SIZE, "remover-user");
     snprintf(request->user, usersize, "%s", obter_usuario_atual());
     snprintf(request->dest, usersize, "%s", grupo);
     snprintf(request->msg, usersize, "%s", uid);
 
     send_to_deamon(request);
+    printf("Removendo usuário %s do grupo %s...\n", uid, grupo);
+
+    read_from_daemon();
 }
 
 int main(int argc, char *argv[]) {

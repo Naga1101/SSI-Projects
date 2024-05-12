@@ -31,7 +31,7 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     numDirs = getUserGroups(uFolderPath, gFolderPath, request.user, &foldersWAccess);
      
     char *folderPath = selectDestino(foldersWAccess, numDirs, request.dest);
-    syslog(LOG_NOTICE, "Antes do if: %s\n", folderPath);
+    // syslog(LOG_NOTICE, "Antes do if: %s\n", folderPath);
 
     if(!folderPath ){
         flagG = 0;
@@ -43,7 +43,7 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
             exit(EXIT_FAILURE);
         }
     }
-    syslog(LOG_NOTICE, "Dps: %s\n", folderPath);
+    // syslog(LOG_NOTICE, "Dps: %s\n", folderPath);
     // snprintf(userFolderPath, sizeof(userFolderPath), "/home/nuno/teste");
 
     struct stat st;
@@ -87,11 +87,16 @@ void enviar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     }
 
     syslog(LOG_NOTICE, "Message written to %s in file: %s\n", request.dest, fileName);
+
+    char confirmation[128];
+    snprintf(confirmation, sizeof(confirmation), "Enviada mensagem para %s com sucesso!", request.dest);
+
+    returnListToClient(request.pid, confirmation);
 }
 
 void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
     int i = request.all_mid;
-    syslog(LOG_NOTICE, "Entrei ler: %s\n", request.user);
+    // syslog(LOG_NOTICE, "Entrei ler: %s\n", request.user);
     char** foldersWAccess;
     int numDirs;
     int groupFlag = 1;
@@ -187,7 +192,7 @@ void ler_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath)
 
 void responder_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
     int i = request.all_mid;
-    syslog(LOG_NOTICE, "Responder ler: %s\n", request.user);
+    // syslog(LOG_NOTICE, "Responder ler: %s\n", request.user);
     char** foldersWAccess;
     int numDirs;
 
@@ -264,6 +269,11 @@ void responder_message(ConcordiaRequest request, char* uFolderPath, char* gFolde
     rename(repliedFile, updateName);
     syslog(LOG_NOTICE, "Updated name from %s to file: %s\n", sortedFiles[i].fileName, updateName);
 
+
+    char confirmation[128];
+    snprintf(confirmation, sizeof(confirmation), "Enviada resposta para %s com sucesso!", sortedFiles[i].nameSender);
+
+    returnListToClient(request.pid, confirmation);
 }
 
 void remover_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
@@ -310,6 +320,11 @@ void remover_message(ConcordiaRequest request, char* uFolderPath, char* gFolderP
     } else {
         syslog(LOG_PERROR, "Error removing file %s\n", fileRemove);
     }
+
+    char msg[128];
+    snprintf(msg, sizeof(msg), "Mensagem removida com sucesso!");
+
+    returnListToClient(request.pid, msg);
 }
 
 void listar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPath){
@@ -348,7 +363,7 @@ void listar_message(ConcordiaRequest request, char* uFolderPath, char* gFolderPa
     char msg[512];
     escreverLista(sortedFiles, numFiles, request.all_mid, request.user, msg);
 
-    syslog(LOG_NOTICE, "Lista de files: '\n'%s\n", msg);
+    // syslog(LOG_NOTICE, "Lista de files: '\n'%s\n", msg);
 
 
     returnListToClient(request.pid, msg);

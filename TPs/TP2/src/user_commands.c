@@ -15,7 +15,7 @@
 #include "../include/user_commands.h"
 #include "../include/utils.h"
 
-void activate_user(char* user, char* folderPath){
+void activate_user(char* user, char* folderPath, int pid){
     char userFolderPath[100];
     snprintf(userFolderPath, sizeof(userFolderPath), "%s/%s", folderPath, user);
 
@@ -43,6 +43,11 @@ void activate_user(char* user, char* folderPath){
     }
 
     syslog(LOG_NOTICE, "Folder created successfully on path: %s\n", userFolderPath);
+
+    char confirmation[128];
+    snprintf(confirmation, sizeof(confirmation), "Adicionado utilizador %s com sucesso!", user);
+
+    returnListToClient(pid, confirmation);
 }
 
 int verify_user(char *path, uid_t uid) {
@@ -61,7 +66,7 @@ int verify_user(char *path, uid_t uid) {
 }
 
 
-void deactivate_user(char *user, char *folderPath) {
+void deactivate_user(char *user, char *folderPath, int pid) {
     char userFolderPath[100];
     snprintf(userFolderPath, sizeof(userFolderPath), "%s/%s", folderPath, user);
 
@@ -85,4 +90,9 @@ void deactivate_user(char *user, char *folderPath) {
     }
 
     syslog(LOG_NOTICE, "User directory removed successfully: %s\n", userFolderPath);
+
+    char confirmation[128];
+    snprintf(confirmation, sizeof(confirmation), "Removido utilizador %s com sucesso!", user);
+
+    returnListToClient(pid, confirmation);
 }

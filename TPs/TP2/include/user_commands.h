@@ -3,7 +3,7 @@
 
 #include "./struct.h"
 
-void activate_user(char* user, char* folderPath);
-void deactivate_user(char *user, char *folderPath);
+void activate_user(char* user, char* folderPath, int pid);
+void deactivate_user(char *user, char *folderPath, int pid);
 
 #endif 
